@@ -72,7 +72,7 @@ export default function AdminsSetupScreen() {
     >
       <View className="gap-3 rounded-md border border-primary bg-white p-4">
         <AppInput label={t("fullName")} value={form.name} onChangeText={(value) => updateField("name", value)} autoCapitalize="words" />
-        <AppInput label={t("password")} value={form.password} onChangeText={(value) => updateField("password", value)} secureTextEntry />
+        <AppInput label={t("password")} value={form.password} onChangeText={(value) => updateField("password", value.replace(/\D/g, ""))} keyboardType="number-pad" secureTextEntry />
         <AppButton label={t("addAdmin")} onPress={handleAddAdmin} className="bg-secondary" />
       </View>
 

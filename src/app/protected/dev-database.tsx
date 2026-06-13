@@ -51,7 +51,7 @@ export default function DevDatabaseScreen() {
   };
 
   return (
-    <Screen title={t("developerDatabase")} scrollable>
+    <Screen icon={<Database color={colors.secondaryDark} size={36} />} title={t("developerDatabase")} subtitle={t("databasePreviewLimit")} showBackButton>
       {!__DEV__ ? (
         <AppCard>
           <Text className="text-base text-secondary">{t("developerDatabaseUnavailable")}</Text>
@@ -59,17 +59,7 @@ export default function DevDatabaseScreen() {
         </AppCard>
       ) : (
         <View className="gap-4">
-          <AppCard className="border-primary">
-            <View className="flex-row items-center gap-3">
-              <View className="h-10 w-10 items-center justify-center rounded-md bg-primary">
-                <Database color={colors.secondaryDark} size={20} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-lg font-semibold text-secondary_dark">{t("databaseTables")}</Text>
-                <Text className="text-sm text-muted">{t("databasePreviewLimit")}</Text>
-              </View>
-            </View>
-          </AppCard>
+          <Text className="text-lg font-semibold text-secondary_dark">{t("databaseTables")}</Text>
 
           {isLoadingTables ? <ActivityIndicator color={colors.orange} /> : null}
 

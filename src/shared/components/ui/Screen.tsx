@@ -1,17 +1,28 @@
-import { PropsWithChildren } from "react";
-import { ScrollView, View } from "react-native";
+import { PropsWithChildren, ReactNode } from "react";
+import { ImageBackground, ScrollView, View } from "react-native";
+import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AngledHeader } from "@/shared/components/ui/AngledHeader";
 
-type ScreenProps = PropsWithChildren<{ title?: string; scrollable?: boolean }>;
+type ScreenProps = PropsWithChildren<{ icon?: ReactNode; showBackButton?: boolean; subtitle?: string; title?: string; scrollable?: boolean }>;
 
-export function Screen({ title, scrollable = false, children }: ScreenProps) {
-  const content = (
-    <View className="flex-1 bg-background">
-      {title ? <AngledHeader title={title} compact /> : null}
-      <View className="flex-1 gap-5 px-5 py-6">{children}</View>
-    </View>
+export function Screen({ icon, showBackButton = false, subtitle, title, scrollable = true, children }: ScreenProps) {
+  const body = <View className="gap-5 px-5 py-6">{children}</View>;
+  return (
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-secondary_dark">
+      <View className="flex-1 bg-background">
+        {title ? <AngledHeader icon={icon} title={title} subtitle={subtitle} showBackButton={showBackButton} onBack={() => router.back()} compact /> : null}
+        <ImageBackground source={require("../../../../assets/quantivo_bg.png")} resizeMode="cover" className="flex-1">
+          {scrollable ? (
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+              {body}
+            </ScrollView>
+          ) : (
+            <View className="flex-1">{body}</View>
+          )}
+        </ImageBackground>
+      </View>
+    </SafeAreaView>
   );
-  return <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-secondary_dark">{scrollable ? <ScrollView keyboardShouldPersistTaps="handled" className="bg-background">{content}</ScrollView> : content}</SafeAreaView>;
 }

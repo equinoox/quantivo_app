@@ -5,6 +5,10 @@ export const routes = {
   products: "/(tabs)/products",
   reports: "/(tabs)/reports",
   settings: "/(tabs)/settings",
+  attributes: "/protected/attributes",
+  categories: "/protected/categories",
   devDatabase: "/protected/dev-database",
+  units: "/protected/units",
+  workersManagement: "/protected/workers-management",
   unauthorized: "/protected/unauthorized",
 } as const;

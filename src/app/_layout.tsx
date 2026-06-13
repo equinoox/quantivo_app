@@ -34,7 +34,11 @@ function AppNavigator() {
       <Stack.Screen name="(setup)" options={{ orientation: "portrait" }} />
       <Stack.Screen name="(auth)" options={{ orientation: "portrait" }} />
       <Stack.Screen name="(tabs)" options={{ orientation: "portrait" }} />
+      <Stack.Screen name="protected/attributes" options={{ orientation: "portrait" }} />
+      <Stack.Screen name="protected/categories" options={{ orientation: "portrait" }} />
       <Stack.Screen name="protected/dev-database" options={{ orientation: "portrait" }} />
+      <Stack.Screen name="protected/units" options={{ orientation: "portrait" }} />
+      <Stack.Screen name="protected/workers-management" options={{ orientation: "portrait" }} />
       <Stack.Screen name="protected/unauthorized" options={{ orientation: "portrait" }} />
     </Stack>
   );

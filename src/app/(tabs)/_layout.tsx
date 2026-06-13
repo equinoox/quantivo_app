@@ -4,10 +4,12 @@ import { BarChart3, Boxes, LayoutDashboard, Package, Settings } from "lucide-rea
 import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
 import { colors } from "@/shared/constants/colors";
+import { useI18n } from "@/shared/i18n/useI18n";
 
 export default function TabsLayout() {
   const session = useAuthStore((state) => state.session);
   const setupStatus = useSetupStore((state) => state.status);
+  const { t } = useI18n();
 
   if (!setupStatus?.isComplete) return <Redirect href="/(setup)/language" />;
   if (!session) return <Redirect href="/(auth)/login" />;
@@ -27,11 +29,11 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="dashboard" options={{ title: "Dashboard", tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} /> }} />
-      <Tabs.Screen name="inventory" options={{ title: "Inventory", tabBarIcon: ({ color, size }) => <Boxes color={color} size={size} /> }} />
-      <Tabs.Screen name="products" options={{ title: "Products", tabBarIcon: ({ color, size }) => <Package color={color} size={size} /> }} />
-      <Tabs.Screen name="reports" options={{ title: "Reports", tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} /> }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings", tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
+      <Tabs.Screen name="dashboard" options={{ title: t("dashboard"), tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} /> }} />
+      <Tabs.Screen name="inventory" options={{ title: t("inventory"), tabBarIcon: ({ color, size }) => <Boxes color={color} size={size} /> }} />
+      <Tabs.Screen name="products" options={{ title: t("products"), tabBarIcon: ({ color, size }) => <Package color={color} size={size} /> }} />
+      <Tabs.Screen name="reports" options={{ title: t("reports"), tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} /> }} />
+      <Tabs.Screen name="settings" options={{ title: t("settings"), tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
     </Tabs>
   );
 }
