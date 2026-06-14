@@ -4,7 +4,7 @@ import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect } from "expo-router";
 import clsx from "clsx";
-import { Check, ImageIcon, ImagePlus, Package, Pencil, Plus, Search, Trash2 } from "lucide-react-native";
+import { Check, ChevronDown, ChevronUp, ImageIcon, ImagePlus, Package, Pencil, Plus, Search, Trash2 } from "lucide-react-native";
 
 import { getProductCatalogOptions, createProduct, listProducts, softDeleteProducts, updateProduct } from "@/features/products/services/products.service";
 import { CatalogItem, Product, ProductInput } from "@/features/products/types/product.types";
@@ -16,6 +16,7 @@ import { AppInput } from "@/shared/components/ui/AppInput";
 import { AppModal } from "@/shared/components/ui/AppModal";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { LoadingState } from "@/shared/components/ui/LoadingState";
+import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
@@ -28,6 +29,7 @@ type ProductFormState = {
   categoryId: string;
   description: string;
   imageUrl: string;
+  isCounterProduct: boolean;
   minimumQuantityAlert: string;
   name: string;
   position: string;
@@ -40,9 +42,10 @@ const emptyForm: ProductFormState = {
   categoryId: "",
   description: "",
   imageUrl: "",
-  minimumQuantityAlert: "",
+  isCounterProduct: false,
+  minimumQuantityAlert: "0",
   name: "",
-  position: "",
+  position: "0",
   price: "",
   unitId: "",
 };
@@ -53,7 +56,8 @@ function productToForm(product: Product): ProductFormState {
     categoryId: product.categoryId,
     description: product.description ?? "",
     imageUrl: product.imageUrl ?? "",
-    minimumQuantityAlert: product.minimumQuantityAlert.toString(),
+    isCounterProduct: product.isCounterProduct,
+    minimumQuantityAlert: product.isCounterProduct ? "0" : product.minimumQuantityAlert.toString(),
     name: product.name,
     position: product.position.toString(),
     price: product.price.toString(),
@@ -84,6 +88,36 @@ function ToolbarButton({ icon, label, onPress, tone = "neutral" }: { icon: React
       {icon}
       <Text className={clsx("text-sm font-semibold", tone === "danger" ? "text-white" : "text-secondary_dark")}>{label}</Text>
     </Pressable>
+  );
+}
+
+function NumberStepper({ disabled = false, keyboardType = "number-pad", label, onChangeText, value }: { disabled?: boolean; keyboardType?: "decimal-pad" | "number-pad"; label: string; onChangeText: (value: string) => void; value: string }) {
+  const parsedValue = Number(value.replace(/,/g, "."));
+  const currentValue = Number.isFinite(parsedValue) ? parsedValue : 0;
+  const updateBy = (delta: number) => {
+    if (disabled) return;
+    const nextValue = Math.max(0, currentValue + delta);
+    onChangeText(keyboardType === "number-pad" ? Math.round(nextValue).toString() : nextValue.toString());
+  };
+
+  return (
+    <View className="flex-1 gap-1.5">
+      <Text numberOfLines={2} className="text-xs font-semibold text-ink">{label}</Text>
+      <View className={clsx("flex-row items-stretch overflow-hidden rounded-md border border-primary bg-white", disabled && "bg-slate-100")}>
+        <View className="flex-1 justify-center px-2">
+          <AppInput editable={!disabled} value={value} onChangeText={onChangeText} keyboardType={keyboardType} className="min-h-9 border-0 bg-transparent px-0 text-sm" />
+        </View>
+        <View className="w-10 border-l border-primary">
+          <Pressable disabled={disabled} accessibilityLabel={`${label} +1`} onPress={() => updateBy(1)} className="h-7 items-center justify-center bg-primary">
+            <ChevronUp color={colors.secondaryDark} size={16} />
+          </Pressable>
+          <View className="h-px bg-white" />
+          <Pressable disabled={disabled} accessibilityLabel={`${label} -1`} onPress={() => updateBy(-1)} className="h-7 items-center justify-center bg-primary">
+            <ChevronDown color={colors.secondaryDark} size={16} />
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -138,12 +172,23 @@ export default function ProductsScreen() {
     }, [loadProducts]),
   );
 
-  const updateForm = (field: keyof ProductFormState, value: string | string[]) => {
+  const updateForm = (field: keyof ProductFormState, value: boolean | string | string[]) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const updateNumericForm = (field: "minimumQuantityAlert" | "position" | "price", value: string) => {
     updateForm(field, value.replace(/[^\d.]/g, ""));
+  };
+
+  const updateIntegerForm = (field: "position", value: string) => {
+    updateForm(field, value.replace(/\D/g, ""));
+  };
+
+  const updateCounterProduct = () => {
+    setForm((current) => {
+      const nextIsCounterProduct = !current.isCounterProduct;
+      return { ...current, isCounterProduct: nextIsCounterProduct, minimumQuantityAlert: nextIsCounterProduct ? "0" : current.minimumQuantityAlert };
+    });
   };
 
   const openCreateForm = () => {
@@ -205,7 +250,7 @@ export default function ProductsScreen() {
       return;
     }
 
-    const input: ProductInput = parsed.data;
+    const input: ProductInput = { ...parsed.data, minimumQuantityAlert: parsed.data.isCounterProduct ? 0 : parsed.data.minimumQuantityAlert };
     try {
       setIsSaving(true);
       if (editingProduct) await updateProduct(editingProduct.id, input);
@@ -234,46 +279,54 @@ export default function ProductsScreen() {
   };
 
   return (
-    <Screen icon={<Package color={colors.secondaryDark} size={36} />} title={t("products")} subtitle={t("productsSubtitle")}>
+    <Screen tabPage icon={<Package color={colors.secondaryDark} size={36} />} title={t("products")} subtitle={t("productsSubtitle")}>
       <View className="gap-4">
-        <View className="gap-2">
-          {isAdmin ? <AppButton label={t("createProduct")} disabled={!canCreateProducts} onPress={openCreateForm} className="bg-secondary_dark" /> : <Text className="text-sm text-muted">{t("readOnlyProductsMessage")}</Text>}
-          {isAdmin && !canCreateProducts ? <Text className="text-sm text-muted">{t("productsMissingCatalogs")}</Text> : null}
-        </View>
-
-        <AppCard>
-          <View className="flex-row items-center gap-2">
-            <Search color={colors.secondary} size={18} />
-            <View className="flex-1">
-              <AppInput value={search} onChangeText={setSearch} placeholder={t("searchProducts")} />
-            </View>
+        <RevealOnScroll>
+          <View className="gap-2">
+            {isAdmin ? <AppButton label={t("createProduct")} disabled={!canCreateProducts} onPress={openCreateForm} className="bg-secondary_dark" /> : <Text className="text-sm text-muted">{t("readOnlyProductsMessage")}</Text>}
+            {isAdmin && !canCreateProducts ? <Text className="text-sm text-muted">{t("productsMissingCatalogs")}</Text> : null}
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-2">
-              <OptionChip isSelected={!categoryFilter} label={t("allCategories")} onPress={() => setCategoryFilter("")} />
-              {categories.map((category) => (
-                <OptionChip key={category.id} isSelected={categoryFilter === category.id} label={category.name} onPress={() => setCategoryFilter(category.id)} />
-              ))}
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={80}>
+          <AppCard>
+            <View className="flex-row items-center gap-2">
+              <Search color={colors.secondary} size={18} />
+              <View className="flex-1">
+                <AppInput value={search} onChangeText={setSearch} placeholder={t("searchProducts")} />
+              </View>
             </View>
-          </ScrollView>
-        </AppCard>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                <OptionChip isSelected={!categoryFilter} label={t("allCategories")} onPress={() => setCategoryFilter("")} />
+                {categories.map((category) => (
+                  <OptionChip key={category.id} isSelected={categoryFilter === category.id} label={category.name} onPress={() => setCategoryFilter(category.id)} />
+                ))}
+              </View>
+            </ScrollView>
+          </AppCard>
+        </RevealOnScroll>
 
         {isAdmin && selectedIds.length > 0 ? (
-          <View className="flex-row items-center justify-between gap-3 rounded-md border border-orange bg-primary px-3 py-2">
-            <Text className="flex-1 text-sm font-semibold text-secondary_dark">{t("selectedProducts").replace("{count}", selectedIds.length.toString())}</Text>
-            <View className="flex-row gap-2">
-              {selectedIds.length === 1 ? <ToolbarButton icon={<Pencil color={colors.secondaryDark} size={15} />} label={t("edit")} onPress={openEditForm} /> : null}
-              <ToolbarButton icon={<Trash2 color="#ffffff" size={15} />} label={selectedIds.length === 1 ? t("delete") : t("bulkDelete")} tone="danger" onPress={() => setIsDeleteConfirmVisible(true)} />
+          <RevealOnScroll>
+            <View className="flex-row items-center justify-between gap-3 rounded-md border border-orange bg-primary px-3 py-2">
+              <Text className="flex-1 text-sm font-semibold text-secondary_dark">{t("selectedProducts").replace("{count}", selectedIds.length.toString())}</Text>
+              <View className="flex-row gap-2">
+                {selectedIds.length === 1 ? <ToolbarButton icon={<Pencil color={colors.secondaryDark} size={15} />} label={t("edit")} onPress={openEditForm} /> : null}
+                <ToolbarButton icon={<Trash2 color="#ffffff" size={15} />} label={selectedIds.length === 1 ? t("delete") : t("bulkDelete")} tone="danger" onPress={() => setIsDeleteConfirmVisible(true)} />
+              </View>
             </View>
-          </View>
+          </RevealOnScroll>
         ) : null}
 
         {isLoading ? <LoadingState label={t("loadingProducts")} /> : null}
 
         {!isLoading && products.length === 0 ? (
-          <AppCard>
-            <EmptyState title={t("productsEmptyTitle")} message={t("productsEmptyMessage")} />
-          </AppCard>
+          <RevealOnScroll>
+            <AppCard>
+              <EmptyState title={t("productsEmptyTitle")} message={t("productsEmptyMessage")} />
+            </AppCard>
+          </RevealOnScroll>
         ) : null}
 
         {!isLoading && products.length > 0 ? (
@@ -281,25 +334,30 @@ export default function ProductsScreen() {
             {products.map((product) => {
               const isSelected = selectedIds.includes(product.id);
               return (
-                <Pressable key={product.id} onPress={() => toggleSelection(product.id)} disabled={!isAdmin}>
-                  <AppCard className={clsx("border-primary", isSelected && "border-orange bg-primary")}>
-                    <View className="flex-row gap-3">
-                      <ProductCheckbox isSelected={isSelected} />
-                      <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-primary">
-                        {product.imageUrl ? <Image source={{ uri: product.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={28} />}
-                      </View>
-                      <View className="flex-1 gap-2">
-                        <View className="flex-row items-start justify-between gap-2">
-                          <Text className="flex-1 text-lg font-semibold text-secondary_dark">{product.name}</Text>
-                          {isSelected ? <Check color={colors.orange} size={20} /> : null}
+                <RevealOnScroll key={product.id} duration={580}>
+                  <Pressable onPress={() => toggleSelection(product.id)} disabled={!isAdmin}>
+                    <AppCard className={clsx("border-primary", isSelected && "border-orange bg-primary")}>
+                      <View className="flex-row gap-3">
+                        {isAdmin ? <ProductCheckbox isSelected={isSelected} /> : null}
+                        <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-primary">
+                          {product.imageUrl ? <Image source={{ uri: product.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={28} />}
                         </View>
-                        <Text className="text-sm text-secondary">{product.categoryName} / {product.unitName}</Text>
-                        {product.attributes.length > 0 ? <Text className="text-sm text-muted">{product.attributes.map((attribute) => attribute.name).join(", ")}</Text> : null}
-                        {product.description ? <Text numberOfLines={2} className="text-sm leading-5 text-muted">{product.description}</Text> : null}
+                        <View className="flex-1 gap-2">
+                          <View className="flex-row items-start justify-between gap-2">
+                            <View className="flex-1 flex-row items-center gap-1">
+                              <Text className="flex-shrink text-lg font-semibold text-secondary_dark">{product.name}</Text>
+                              {product.isCounterProduct ? <Text className="rounded bg-orange px-1.5 py-0.5 text-xs font-bold text-black">B</Text> : null}
+                            </View>
+                            {isSelected ? <Check color={colors.orange} size={20} /> : null}
+                          </View>
+                          <Text className="text-sm text-secondary">{product.categoryName} / {product.unitName}</Text>
+                          {product.attributes.length > 0 ? <Text className="text-sm text-muted">{product.attributes.map((attribute) => attribute.name).join(", ")}</Text> : null}
+                          {product.description ? <Text numberOfLines={2} className="text-sm leading-5 text-muted">{product.description}</Text> : null}
+                        </View>
                       </View>
-                    </View>
-                  </AppCard>
-                </Pressable>
+                    </AppCard>
+                  </Pressable>
+                </RevealOnScroll>
               );
             })}
           </View>
@@ -307,23 +365,33 @@ export default function ProductsScreen() {
       </View>
 
       <AppModal visible={isFormVisible} onClose={closeForm}>
-        <View className="max-h-[88%] gap-4">
+        <View className="gap-3">
           <View className="flex-row items-center gap-3">
             <View className="h-10 w-10 items-center justify-center rounded-md bg-primary">
               {editingProduct ? <Package color={colors.secondaryDark} size={20} /> : <Plus color={colors.secondaryDark} size={20} />}
             </View>
             <View className="flex-1">
               <Text className="text-xl font-semibold text-secondary_dark">{editingProduct ? t("editProduct") : t("createProduct")}</Text>
-              <Text className="text-sm text-muted">{t("productFormSubtitle")}</Text>
             </View>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" className="max-h-[520px]">
-            <View className="gap-4">
+          <ScrollView keyboardShouldPersistTaps="handled" className="max-h-[500px]">
+            <View className="gap-3">
               <AppInput label={t("name")} value={form.name} onChangeText={(value) => updateForm("name", value)} autoCapitalize="words" />
               <AppInput label={t("price")} value={form.price} onChangeText={(value) => updateNumericForm("price", value)} keyboardType="decimal-pad" placeholder={formatMoney(0)} />
-              <AppInput label={t("minimumQuantityAlert")} value={form.minimumQuantityAlert} onChangeText={(value) => updateNumericForm("minimumQuantityAlert", value)} keyboardType="decimal-pad" />
-              <AppInput label={t("position")} value={form.position} onChangeText={(value) => updateNumericForm("position", value)} keyboardType="number-pad" />
+              <View className="flex-row gap-3">
+                <NumberStepper disabled={form.isCounterProduct} label={t("minimumQuantityAlert")} value={form.minimumQuantityAlert} onChangeText={(value) => updateNumericForm("minimumQuantityAlert", value)} keyboardType="decimal-pad" />
+                <NumberStepper label={t("position")} value={form.position} onChangeText={(value) => updateIntegerForm("position", value)} keyboardType="number-pad" />
+              </View>
+              <Pressable onPress={updateCounterProduct} className={clsx("min-h-12 flex-row items-center gap-3 rounded-md border px-3", form.isCounterProduct ? "border-orange bg-primary" : "border-primary bg-white")}>
+                <View className={clsx("h-6 w-6 items-center justify-center rounded border", form.isCounterProduct ? "border-orange bg-orange" : "border-slate-300 bg-white")}>
+                  {form.isCounterProduct ? <Check color="#ffffff" size={15} /> : null}
+                </View>
+                <View className="flex-1">
+                  <Text className="font-semibold text-secondary_dark">{t("counterProduct")}</Text>
+                  <Text className="mt-1 text-xs leading-4 text-muted">{t("counterProductHint")}</Text>
+                </View>
+              </Pressable>
               <AppInput label={t("description")} value={form.description} onChangeText={(value) => updateForm("description", value)} multiline />
               <View className="gap-2">
                 <Text className="text-sm font-medium text-ink">{t("image")}</Text>
@@ -362,14 +430,14 @@ export default function ProductsScreen() {
             </View>
           </ScrollView>
 
-          <View className="gap-3 pt-1">
+          <View className="gap-2 pt-1">
             <AppButton label={editingProduct ? t("saveChanges") : t("createProduct")} loading={isSaving} onPress={handleSave} className="bg-secondary_dark" />
             <AppButton label={t("cancel")} variant="secondary" onPress={closeForm} />
           </View>
         </View>
       </AppModal>
 
-      <ConfirmDialog visible={isDeleteConfirmVisible} title={t("deleteProductsTitle")} message={t("deleteProductsMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setIsDeleteConfirmVisible(false)} onConfirm={handleDeleteSelected} />
+      <ConfirmDialog destructive visible={isDeleteConfirmVisible} title={t("deleteProductsTitle")} message={t("deleteProductsMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setIsDeleteConfirmVisible(false)} onConfirm={handleDeleteSelected} />
     </Screen>
   );
 }

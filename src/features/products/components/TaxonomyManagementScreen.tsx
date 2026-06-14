@@ -11,6 +11,7 @@ import { AppCard } from "@/shared/components/ui/AppCard";
 import { AppInput } from "@/shared/components/ui/AppInput";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { LoadingState } from "@/shared/components/ui/LoadingState";
+import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
@@ -122,6 +123,7 @@ export function TaxonomyManagementScreen({ kind }: TaxonomyManagementScreenProps
         {!isAdmin ? <Text className="rounded-md border border-primary bg-white p-3 text-sm text-muted">{t("readOnlyCatalogMessage")}</Text> : null}
 
         {isAdmin ? (
+          <RevealOnScroll>
           <AppCard>
             <AppInput label={t("name")} value={name} onChangeText={setName} autoCapitalize="words" />
             {kind === "units" ? (
@@ -143,35 +145,40 @@ export function TaxonomyManagementScreen({ kind }: TaxonomyManagementScreenProps
             ) : null}
             <AppButton label={t("create")} loading={isSaving} onPress={handleCreate} className="bg-secondary_dark" />
           </AppCard>
+          </RevealOnScroll>
         ) : null}
 
         {isLoading ? <LoadingState label={t("loading")} /> : null}
 
         {!isLoading && items.length === 0 ? (
-          <AppCard>
-            <EmptyState title={t(meta.emptyTitleKey)} message={t(meta.emptyMessageKey)} />
-          </AppCard>
+          <RevealOnScroll>
+            <AppCard>
+              <EmptyState title={t(meta.emptyTitleKey)} message={t(meta.emptyMessageKey)} />
+            </AppCard>
+          </RevealOnScroll>
         ) : null}
 
         {!isLoading && items.length > 0 ? (
           <View className="gap-3">
             {items.map((item) => (
-              <AppCard key={item.id} className="border-primary">
-                <View className="min-h-10 flex-row items-center justify-between gap-3">
-                  <Text className="flex-1 text-base font-semibold text-secondary_dark">{item.name}</Text>
-                  {kind === "units" ? <Text className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-secondary_dark">{item.quantityType === "whole" ? t("wholeNumbers") : t("decimalNumbers")}</Text> : null}
-                  {isAdmin ? (
-                    <Pressable accessibilityRole="button" onPress={() => setDeleteTarget(item)} className="h-10 w-10 items-center justify-center rounded-md bg-red-600">
-                      <Trash2 color="#ffffff" size={18} />
-                    </Pressable>
-                  ) : null}
-                </View>
-              </AppCard>
+              <RevealOnScroll key={item.id} duration={560}>
+                <AppCard className="border-primary">
+                  <View className="min-h-10 flex-row items-center justify-between gap-3">
+                    <Text className="flex-1 text-base font-semibold text-secondary_dark">{item.name}</Text>
+                    {kind === "units" ? <Text className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-secondary_dark">{item.quantityType === "whole" ? t("wholeNumbers") : t("decimalNumbers")}</Text> : null}
+                    {isAdmin ? (
+                      <Pressable accessibilityRole="button" onPress={() => setDeleteTarget(item)} className="h-10 w-10 items-center justify-center rounded-md bg-red-600">
+                        <Trash2 color="#ffffff" size={18} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </AppCard>
+              </RevealOnScroll>
             ))}
           </View>
         ) : null}
       </View>
-      <ConfirmDialog visible={Boolean(deleteTarget)} title={t("deleteCatalogItemTitle")} message={t("deleteCatalogItemMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <ConfirmDialog destructive visible={Boolean(deleteTarget)} title={t("deleteCatalogItemTitle")} message={t("deleteCatalogItemMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
     </Screen>
   );
 }

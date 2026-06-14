@@ -5,7 +5,7 @@ import clsx from "clsx";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
-import { AppDateFormat, AppLanguage } from "@/features/setup/types/setup.types";
+import { AppDateFormat, AppLanguage, AppTimeFormat } from "@/features/setup/types/setup.types";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
@@ -18,7 +18,8 @@ const timezoneOptions = [
   { label: "UTC-5 America/New_York", value: "America/New_York" },
 ];
 
-const dateFormats: AppDateFormat[] = ["dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd"];
+const dateFormats: AppDateFormat[] = ["dd/MM/yyyy", "dd.MM.yyyy", "MM/dd/yyyy", "yyyy-MM-dd"];
+const timeFormats: AppTimeFormat[] = ["24h", "12h"];
 
 export default function LanguageSetupScreen() {
   const toast = useAppToast();
@@ -26,9 +27,11 @@ export default function LanguageSetupScreen() {
   const language = useSetupStore((state) => state.draft.language);
   const timezone = useSetupStore((state) => state.draft.timezone);
   const dateFormat = useSetupStore((state) => state.draft.dateFormat);
+  const timeFormat = useSetupStore((state) => state.draft.timeFormat);
   const setLanguage = useSetupStore((state) => state.setLanguage);
   const setTimezone = useSetupStore((state) => state.setTimezone);
   const setDateFormat = useSetupStore((state) => state.setDateFormat);
+  const setTimeFormat = useSetupStore((state) => state.setTimeFormat);
   const languages: { value: AppLanguage; label: string; flag: string; description: string }[] = [
     { value: "en", label: t("english"), flag: "\u{1F1EC}\u{1F1E7}", description: t("englishDescription") },
     { value: "sr", label: t("serbian"), flag: "\u{1F1F7}\u{1F1F8}", description: t("serbianDescription") },
@@ -78,6 +81,17 @@ export default function LanguageSetupScreen() {
           {dateFormats.map((item) => (
             <Pressable key={item} onPress={() => setDateFormat(item)} className={clsx("min-h-10 justify-center rounded-md border bg-white px-3", dateFormat === item ? "border-orange" : "border-primary")}>
               <Text className="font-medium text-secondary_dark">{item}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View className="gap-3">
+        <Text className="text-sm font-semibold text-secondary_dark">{t("timeFormat")}</Text>
+        <View className="flex-row flex-wrap gap-2">
+          {timeFormats.map((item) => (
+            <Pressable key={item} onPress={() => setTimeFormat(item)} className={clsx("min-h-10 justify-center rounded-md border bg-white px-3", timeFormat === item ? "border-orange" : "border-primary")}>
+              <Text className="font-medium text-secondary_dark">{item === "12h" ? t("timeFormat12h") : t("timeFormat24h")}</Text>
             </Pressable>
           ))}
         </View>

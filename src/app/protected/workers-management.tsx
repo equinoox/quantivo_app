@@ -14,6 +14,7 @@ import { AppInput } from "@/shared/components/ui/AppInput";
 import { AppModal } from "@/shared/components/ui/AppModal";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { LoadingState } from "@/shared/components/ui/LoadingState";
+import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
@@ -162,49 +163,55 @@ export default function WorkersManagementScreen() {
   return (
     <Screen icon={<UsersRound color={colors.secondaryDark} size={36} />} title={t("workersManagement")} subtitle={t("workersManagementSubtitle")} showBackButton>
       <View className="gap-4">
-        <View className="flex-row items-center justify-between gap-3">
-          <Text className="text-sm font-semibold text-secondary">{workerCountLabel}</Text>
-          <AppButton label={t("createWorker")} onPress={openCreateForm} className="bg-secondary_dark" />
-        </View>
+        <RevealOnScroll>
+          <View className="flex-row items-center justify-between gap-3">
+            <Text className="text-sm font-semibold text-secondary">{workerCountLabel}</Text>
+            <AppButton label={t("createWorker")} onPress={openCreateForm} className="bg-secondary_dark" />
+          </View>
+        </RevealOnScroll>
 
         {isLoading ? <LoadingState label={t("loadingWorkers")} /> : null}
 
         {!isLoading && workers.length === 0 ? (
-          <AppCard>
-            <EmptyState title={t("workersEmptyTitle")} message={t("workersEmptyMessage")} />
-          </AppCard>
+          <RevealOnScroll>
+            <AppCard>
+              <EmptyState title={t("workersEmptyTitle")} message={t("workersEmptyMessage")} />
+            </AppCard>
+          </RevealOnScroll>
         ) : null}
 
         {!isLoading && workers.length > 0 ? (
           <View className="gap-3">
             {workers.map((worker) => (
-              <AppCard key={worker.id} className="border-primary">
-                <View className="gap-3">
-                  <View className="flex-row items-start justify-between gap-3">
-                    <View className="flex-1">
-                      <Text className="text-lg font-semibold text-secondary_dark">{worker.fullName}</Text>
-                      <Text className="mt-1 text-sm text-muted">{worker.workerType || "-"}</Text>
+              <RevealOnScroll key={worker.id} duration={560}>
+                <AppCard className="border-primary">
+                  <View className="gap-3">
+                    <View className="flex-row items-start justify-between gap-3">
+                      <View className="flex-1">
+                        <Text className="text-lg font-semibold text-secondary_dark">{worker.fullName}</Text>
+                        <Text className="mt-1 text-sm text-muted">{worker.workerType || "-"}</Text>
+                      </View>
+                      <View className="rounded-md bg-primary px-3 py-1">
+                        <Text className="text-xs font-semibold text-secondary_dark">{worker.role}</Text>
+                      </View>
                     </View>
-                    <View className="rounded-md bg-primary px-3 py-1">
-                      <Text className="text-xs font-semibold text-secondary_dark">{worker.role}</Text>
+                    <View className="flex-row gap-3">
+                      <Text className="text-sm text-secondary">{t("age")}: {worker.age}</Text>
+                      <Text className="text-sm text-secondary">{t("workerType")}: {worker.workerType || "-"}</Text>
+                    </View>
+                    <View className="flex-row gap-2">
+                      <Pressable onPress={() => openEditForm(worker)} className="min-h-10 flex-1 flex-row items-center justify-center gap-2 rounded-md border border-primary bg-white px-3">
+                        <Pencil color={colors.secondaryDark} size={16} />
+                        <Text className="font-semibold text-secondary_dark">{t("edit")}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setDeleteTarget(worker)} className="min-h-10 flex-1 flex-row items-center justify-center gap-2 rounded-md bg-red-600 px-3">
+                        <Trash2 color="#ffffff" size={16} />
+                        <Text className="font-semibold text-white">{t("delete")}</Text>
+                      </Pressable>
                     </View>
                   </View>
-                  <View className="flex-row gap-3">
-                    <Text className="text-sm text-secondary">{t("age")}: {worker.age}</Text>
-                    <Text className="text-sm text-secondary">{t("workerType")}: {worker.workerType || "-"}</Text>
-                  </View>
-                  <View className="flex-row gap-2">
-                    <Pressable onPress={() => openEditForm(worker)} className="min-h-10 flex-1 flex-row items-center justify-center gap-2 rounded-md border border-primary bg-white px-3">
-                      <Pencil color={colors.secondaryDark} size={16} />
-                      <Text className="font-semibold text-secondary_dark">{t("edit")}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setDeleteTarget(worker)} className="min-h-10 flex-1 flex-row items-center justify-center gap-2 rounded-md bg-red-600 px-3">
-                      <Trash2 color="#ffffff" size={16} />
-                      <Text className="font-semibold text-white">{t("delete")}</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              </AppCard>
+                </AppCard>
+              </RevealOnScroll>
             ))}
           </View>
         ) : null}
@@ -246,7 +253,7 @@ export default function WorkersManagementScreen() {
         </View>
       </AppModal>
 
-      <ConfirmDialog visible={Boolean(deleteTarget)} title={t("deleteWorkerTitle")} message={t("deleteWorkerMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <ConfirmDialog destructive visible={Boolean(deleteTarget)} title={t("deleteWorkerTitle")} message={t("deleteWorkerMessage")} cancelLabel={t("cancel")} confirmLabel={t("delete")} onCancel={() => setDeleteTarget(null)} onConfirm={handleDelete} />
     </Screen>
   );
 }

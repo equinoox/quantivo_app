@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -24,6 +24,17 @@ export const workers = sqliteTable("workers", {
   age: integer("age").notNull(),
   role: text("role", { enum: ["Admin", "Manager", "Worker"] }).notNull().default("Worker"),
   workerType: text("worker_type").notNull().default(""),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  deletedAt: text("deleted_at"),
+});
+
+export const financialItems = sqliteTable("financial_items", {
+  id: text("id").primaryKey(),
+  type: text("type", { enum: ["expense", "revenue"] }).notNull(),
+  behavior: text("behavior", { enum: ["fixed", "variable"] }).notNull(),
+  name: text("name").notNull(),
+  requiresExplanation: integer("requires_explanation", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
@@ -68,6 +79,7 @@ export const products = sqliteTable("products", {
   salePrice: real("sale_price").notNull().default(0),
   reorderPoint: real("reorder_point").notNull().default(0),
   position: integer("position").notNull().default(0),
+  isCounterProduct: integer("is_counter_product", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   deletedAt: text("deleted_at"),
@@ -93,4 +105,72 @@ export const inventoryTransactions = sqliteTable("inventory_transactions", {
   quantityDelta: real("quantity_delta").notNull(),
   note: text("note"),
   occurredAt: text("occurred_at").notNull(),
+});
+
+export const inventoryLists = sqliteTable(
+  "inventory_lists",
+  {
+    id: text("id").primaryKey(),
+    date: text("date").notNull(),
+    shift: text("shift", { enum: ["first", "second"] }).notNull(),
+    createdByUserId: text("created_by_user_id").notNull().references(() => users.id),
+    totalProductEarnings: real("total_product_earnings").notNull().default(0),
+    totalRevenues: real("total_revenues").notNull().default(0),
+    totalExpenses: real("total_expenses").notNull().default(0),
+    bilans: real("bilans").notNull().default(0),
+    totalEarn: real("total_earn").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [uniqueIndex("inventory_lists_date_shift_unique").on(table.date, table.shift)],
+);
+
+export const inventoryListItems = sqliteTable("inventory_list_items", {
+  id: text("id").primaryKey(),
+  inventoryListId: text("inventory_list_id").notNull().references(() => inventoryLists.id),
+  productId: text("product_id").notNull().references(() => products.id),
+  productNameSnapshot: text("product_name_snapshot").notNull(),
+  uneto: real("uneto").notNull().default(0),
+  unetoExpression: text("uneto_expression").notNull().default(""),
+  kolicina: real("kolicina").notNull().default(0),
+  kolicinaExpression: text("kolicina_expression").notNull().default(""),
+  kraj: real("kraj").notNull().default(0),
+  krajExpression: text("kraj_expression").notNull().default(""),
+  prodato: real("prodato").notNull().default(0),
+  priceSnapshot: real("price_snapshot").notNull().default(0),
+  totalEarning: real("total_earning").notNull().default(0),
+  isCounterProduct: integer("is_counter_product", { mode: "boolean" }).notNull().default(false),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const inventoryListFinancialEntries = sqliteTable("inventory_list_financial_entries", {
+  id: text("id").primaryKey(),
+  inventoryListId: text("inventory_list_id").notNull().references(() => inventoryLists.id),
+  revenueExpenseId: text("revenue_expense_id").notNull().references(() => financialItems.id),
+  nameSnapshot: text("name_snapshot").notNull(),
+  typeSnapshot: text("type_snapshot", { enum: ["expense", "revenue"] }).notNull(),
+  behaviorSnapshot: text("behavior_snapshot", { enum: ["fixed", "variable"] }).notNull(),
+  amount: real("amount").notNull().default(0),
+  amountExpression: text("amount_expression").notNull().default(""),
+  explanation: text("explanation").notNull().default(""),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const inventoryNotifications = sqliteTable("inventory_notifications", {
+  id: text("id").primaryKey(),
+  type: text("type", { enum: ["field_change", "shift_finished"] }).notNull(),
+  actorUserId: text("actor_user_id").notNull().references(() => users.id),
+  actorNameSnapshot: text("actor_name_snapshot").notNull(),
+  productId: text("product_id"),
+  productNameSnapshot: text("product_name_snapshot"),
+  columnKey: text("column_key", { enum: ["quantity", "entered"] }),
+  columnLabelSnapshot: text("column_label_snapshot"),
+  oldValue: real("old_value"),
+  newValue: real("new_value"),
+  inventoryListId: text("inventory_list_id"),
+  inventoryDate: text("inventory_date"),
+  shift: text("shift", { enum: ["first", "second"] }),
+  createdAt: text("created_at").notNull(),
 });

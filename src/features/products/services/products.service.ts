@@ -3,7 +3,7 @@ import { desc, eq, inArray, isNull } from "drizzle-orm";
 import { listCatalogItems } from "@/features/products/services/catalog.service";
 import { CatalogItem, Product, ProductInput, UnitQuantityType } from "@/features/products/types/product.types";
 import { db } from "@/shared/lib/db/client";
-import { attributes, categories, productAttributes, products, units } from "@/shared/lib/db/schema";
+import { attributes, categories, inventoryItems, productAttributes, products, units } from "@/shared/lib/db/schema";
 
 function createProductId(): string {
   return `prd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -73,7 +73,10 @@ export async function listProducts(filters: { categoryId?: string; search?: stri
     .where(isNull(products.deletedAt))
     .orderBy(products.position, desc(products.createdAt));
 
-  const attributeMap = await getProductAttributesByProductIds(rows.map((row) => row.product.id));
+  const productIds = rows.map((row) => row.product.id);
+  const attributeMap = await getProductAttributesByProductIds(productIds);
+  const stockRows = productIds.length > 0 ? await db.select().from(inventoryItems).where(inArray(inventoryItems.productId, productIds)) : [];
+  const stockMap = new Map(stockRows.map((row) => [row.productId, row.quantityOnHand]));
   const search = filters.search?.trim().toLowerCase();
 
   return rows
@@ -88,10 +91,12 @@ export async function listProducts(filters: { categoryId?: string; search?: stri
       description: row.product.description,
       id: row.product.id,
       imageUrl: row.product.imageUrl,
+      isCounterProduct: Boolean(row.product.isCounterProduct),
       name: row.product.name,
       minimumQuantityAlert: row.product.reorderPoint,
       position: row.product.position,
       price: row.product.salePrice,
+      quantityOnHand: stockMap.get(row.product.id) ?? 0,
       unitId: row.product.unitId ?? "",
       unitName: row.unitName ?? row.product.unit,
       unitQuantityType: toUnitQuantityType(row.unitQuantityType),
@@ -122,8 +127,9 @@ function toInsertValues(id: string, input: ProductInput, now: string): ProductRo
     description: input.description?.trim() || null,
     id,
     imageUrl: input.imageUrl?.trim() || null,
+    isCounterProduct: input.isCounterProduct,
     name: input.name.trim(),
-    reorderPoint: input.minimumQuantityAlert,
+    reorderPoint: input.isCounterProduct ? 0 : input.minimumQuantityAlert,
     salePrice: input.price,
     sku: null,
     unit: "piece",
@@ -152,9 +158,10 @@ export async function updateProduct(id: string, input: ProductInput): Promise<Pr
       categoryId: input.categoryId,
       description: input.description?.trim() || null,
       imageUrl: input.imageUrl?.trim() || null,
+      isCounterProduct: input.isCounterProduct,
       name: input.name.trim(),
       position: input.position,
-      reorderPoint: input.minimumQuantityAlert,
+      reorderPoint: input.isCounterProduct ? 0 : input.minimumQuantityAlert,
       salePrice: input.price,
       unitId: input.unitId,
       updatedAt: now,

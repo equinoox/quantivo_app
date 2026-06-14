@@ -22,9 +22,11 @@ export type Product = {
   unitName: string;
   unitQuantityType: UnitQuantityType;
   attributes: CatalogItem[];
+  isCounterProduct: boolean;
   minimumQuantityAlert: number;
   position: number;
   price: number;
+  quantityOnHand: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;
@@ -37,6 +39,7 @@ export type ProductInput = {
   categoryId: string;
   unitId: string;
   attributeIds: string[];
+  isCounterProduct: boolean;
   minimumQuantityAlert: number;
   position: number;
   price: number;

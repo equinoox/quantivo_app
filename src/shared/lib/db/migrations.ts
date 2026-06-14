@@ -1,5 +1,31 @@
 import { sqlite } from "@/shared/lib/db/client";
 
+export async function resetDatabase(): Promise<void> {
+  await sqlite.execAsync(`
+    PRAGMA foreign_keys = OFF;
+
+    DROP TABLE IF EXISTS inventory_list_financial_entries;
+    DROP TABLE IF EXISTS inventory_notifications;
+    DROP TABLE IF EXISTS inventory_list_items;
+    DROP TABLE IF EXISTS inventory_lists;
+    DROP TABLE IF EXISTS inventory_transactions;
+    DROP TABLE IF EXISTS inventory_items;
+    DROP TABLE IF EXISTS product_attributes;
+    DROP TABLE IF EXISTS products;
+    DROP TABLE IF EXISTS attributes;
+    DROP TABLE IF EXISTS units;
+    DROP TABLE IF EXISTS categories;
+    DROP TABLE IF EXISTS financial_items;
+    DROP TABLE IF EXISTS workers;
+    DROP TABLE IF EXISTS users;
+    DROP TABLE IF EXISTS app_settings;
+
+    PRAGMA foreign_keys = ON;
+  `);
+
+  await runMigrations();
+}
+
 export async function runMigrations(): Promise<void> {
   // Future versions should replace this with tracked Drizzle migrations.
   await sqlite.execAsync(`
@@ -29,6 +55,17 @@ export async function runMigrations(): Promise<void> {
       age INTEGER NOT NULL,
       role TEXT NOT NULL DEFAULT 'Worker',
       worker_type TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS financial_items (
+      id TEXT PRIMARY KEY NOT NULL,
+      type TEXT NOT NULL,
+      behavior TEXT NOT NULL,
+      name TEXT NOT NULL,
+      requires_explanation INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       deleted_at TEXT
@@ -73,6 +110,7 @@ export async function runMigrations(): Promise<void> {
       sale_price REAL NOT NULL DEFAULT 0,
       reorder_point REAL NOT NULL DEFAULT 0,
       position INTEGER NOT NULL DEFAULT 0,
+      is_counter_product INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       deleted_at TEXT
@@ -99,11 +137,105 @@ export async function runMigrations(): Promise<void> {
       note TEXT,
       occurred_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS inventory_lists (
+      id TEXT PRIMARY KEY NOT NULL,
+      date TEXT NOT NULL,
+      shift TEXT NOT NULL,
+      created_by_user_id TEXT NOT NULL REFERENCES users(id),
+      total_product_earnings REAL NOT NULL DEFAULT 0,
+      total_revenues REAL NOT NULL DEFAULT 0,
+      total_expenses REAL NOT NULL DEFAULT 0,
+      bilans REAL NOT NULL DEFAULT 0,
+      total_earn REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS inventory_lists_date_shift_unique
+      ON inventory_lists(date, shift);
+
+    CREATE TABLE IF NOT EXISTS inventory_list_items (
+      id TEXT PRIMARY KEY NOT NULL,
+      inventory_list_id TEXT NOT NULL REFERENCES inventory_lists(id),
+      product_id TEXT NOT NULL REFERENCES products(id),
+      product_name_snapshot TEXT NOT NULL,
+      uneto REAL NOT NULL DEFAULT 0,
+      uneto_expression TEXT NOT NULL DEFAULT '',
+      kolicina REAL NOT NULL DEFAULT 0,
+      kolicina_expression TEXT NOT NULL DEFAULT '',
+      kraj REAL NOT NULL DEFAULT 0,
+      kraj_expression TEXT NOT NULL DEFAULT '',
+      prodato REAL NOT NULL DEFAULT 0,
+      price_snapshot REAL NOT NULL DEFAULT 0,
+      total_earning REAL NOT NULL DEFAULT 0,
+      is_counter_product INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_list_financial_entries (
+      id TEXT PRIMARY KEY NOT NULL,
+      inventory_list_id TEXT NOT NULL REFERENCES inventory_lists(id),
+      revenue_expense_id TEXT NOT NULL REFERENCES financial_items(id),
+      name_snapshot TEXT NOT NULL,
+      type_snapshot TEXT NOT NULL,
+      behavior_snapshot TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      amount_expression TEXT NOT NULL DEFAULT '',
+      explanation TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_notifications (
+      id TEXT PRIMARY KEY NOT NULL,
+      type TEXT NOT NULL,
+      actor_user_id TEXT NOT NULL REFERENCES users(id),
+      actor_name_snapshot TEXT NOT NULL,
+      product_id TEXT,
+      product_name_snapshot TEXT,
+      column_key TEXT,
+      column_label_snapshot TEXT,
+      old_value REAL,
+      new_value REAL,
+      inventory_list_id TEXT,
+      inventory_date TEXT,
+      shift TEXT,
+      created_at TEXT NOT NULL
+    );
   `);
 
   const workerColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(workers)");
   if (!workerColumns.some((column) => column.name === "user_id")) {
     await sqlite.execAsync("ALTER TABLE workers ADD COLUMN user_id TEXT REFERENCES users(id);");
+  }
+
+  const financialItemColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(financial_items)");
+  if (!financialItemColumns.some((column) => column.name === "requires_explanation")) {
+    await sqlite.execAsync("ALTER TABLE financial_items ADD COLUMN requires_explanation INTEGER NOT NULL DEFAULT 0;");
+  }
+
+  const inventoryListFinancialEntryColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(inventory_list_financial_entries)");
+  if (!inventoryListFinancialEntryColumns.some((column) => column.name === "explanation")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_financial_entries ADD COLUMN explanation TEXT NOT NULL DEFAULT '';");
+  }
+  if (!inventoryListFinancialEntryColumns.some((column) => column.name === "amount_expression")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_financial_entries ADD COLUMN amount_expression TEXT NOT NULL DEFAULT '';");
+  }
+
+  const inventoryListItemColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(inventory_list_items)");
+  if (!inventoryListItemColumns.some((column) => column.name === "uneto_expression")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_items ADD COLUMN uneto_expression TEXT NOT NULL DEFAULT '';");
+  }
+  if (!inventoryListItemColumns.some((column) => column.name === "kolicina_expression")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_items ADD COLUMN kolicina_expression TEXT NOT NULL DEFAULT '';");
+  }
+  if (!inventoryListItemColumns.some((column) => column.name === "kraj_expression")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_items ADD COLUMN kraj_expression TEXT NOT NULL DEFAULT '';");
+  }
+  if (!inventoryListItemColumns.some((column) => column.name === "is_counter_product")) {
+    await sqlite.execAsync("ALTER TABLE inventory_list_items ADD COLUMN is_counter_product INTEGER NOT NULL DEFAULT 0;");
   }
 
   const categoryColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(categories)");
@@ -125,5 +257,8 @@ export async function runMigrations(): Promise<void> {
   }
   if (!productColumns.some((column) => column.name === "image_url")) {
     await sqlite.execAsync("ALTER TABLE products ADD COLUMN image_url TEXT;");
+  }
+  if (!productColumns.some((column) => column.name === "is_counter_product")) {
+    await sqlite.execAsync("ALTER TABLE products ADD COLUMN is_counter_product INTEGER NOT NULL DEFAULT 0;");
   }
 }
