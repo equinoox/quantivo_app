@@ -1,0 +1,36 @@
+import { FeatureTranslations } from "./types";
+
+export const financeTranslations: FeatureTranslations = {
+  en: {
+    revenuesExpensesManagement: "Revenues and Expenses",
+    revenuesExpensesManagementSubtitle: "Define fixed or variable revenue and expense items.",
+    expense: "Expense",
+    revenue: "Revenue",
+    addAllFinancialEntriesTitle: "Add all entries?",
+    addAllFinancialEntriesMessage: "All revenue and expense items that are not already selected will be added to this list.",
+    financialItemNamePlaceholder: "Rent, Electricity, Delivery, Salary",
+    financialItemValidationError: "Name, type, and behavior are required.",
+    financialItemSaved: "Item saved",
+    financialItemSaveFailed: "Item save failed",
+    financialItemDeleted: "Item deleted",
+    financialItemDeleteFailed: "Item delete failed",
+    financialItemsEmptyTitle: "No revenue or expense items yet",
+    financialItemsEmptyMessage: "Create items such as rent, salary, daily sales, or sponsorship.",
+  },
+  sr: {
+    revenuesExpensesManagement: "Prihodi i troskovi",
+    revenuesExpensesManagementSubtitle: "Definisite fiksne ili varijabilne stavke prihoda i troskova.",
+    expense: "Trosak",
+    revenue: "Prihod",
+    addAllFinancialEntriesTitle: "Dodati sve stavke?",
+    addAllFinancialEntriesMessage: "Sve stavke prihoda i troskova koje vec nisu izabrane bice dodate u ovu listu.",
+    financialItemNamePlaceholder: "Kirija, Struja, Dostava, Plata",
+    financialItemValidationError: "Naziv, tip i ponasanje su obavezni.",
+    financialItemSaved: "Stavka sacuvana",
+    financialItemSaveFailed: "Cuvanje stavke nije uspelo",
+    financialItemDeleted: "Stavka obrisana",
+    financialItemDeleteFailed: "Brisanje stavke nije uspelo",
+    financialItemsEmptyTitle: "Jos nema stavki prihoda ili troskova",
+    financialItemsEmptyMessage: "Kreirajte stavke kao sto su kirija, plata, dnevni promet ili sponzorstvo.",
+  },
+};

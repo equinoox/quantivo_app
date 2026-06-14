@@ -20,7 +20,6 @@ import { AppInput } from "@/shared/components/ui/AppInput";
 import { AppModal } from "@/shared/components/ui/AppModal";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { LoadingState } from "@/shared/components/ui/LoadingState";
-import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
@@ -587,36 +586,29 @@ export default function DashboardScreen() {
   return (
     <Screen tabPage icon={<ListPlus color={colors.secondaryDark} size={36} />} title={t("dashboard")} subtitle={t("dashboardSubtitle")} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshDashboard} tintColor={colors.orange} />}>
       <View className="gap-4">
-        <RevealOnScroll>
-          <View className="items-center">
-            <View className="flex-row flex-wrap justify-center gap-2">
-              <SortChip isSelected={grouping === "unit"} label={t("sortByUnit")} onPress={() => setGrouping("unit")} />
-              <SortChip isSelected={grouping === "category"} label={t("sortByCategory")} onPress={() => setGrouping("category")} />
-            </View>
+        <View className="items-center">
+          <View className="flex-row flex-wrap justify-center gap-2">
+            <SortChip isSelected={grouping === "unit"} label={t("sortByUnit")} onPress={() => setGrouping("unit")} />
+            <SortChip isSelected={grouping === "category"} label={t("sortByCategory")} onPress={() => setGrouping("category")} />
           </View>
-        </RevealOnScroll>
+        </View>
 
         {isLoading ? <LoadingState label={t("loadingProducts")} /> : null}
 
         {!isLoading && hasLowStockProducts ? (
-          <RevealOnScroll>
-            <View className="flex-row items-center gap-2 px-1">
-              <AlertTriangle color="#dc2626" size={22} />
-              <Text className="flex-1 text-base font-semibold text-red-800">{t("lowStockWarning")}</Text>
-            </View>
-          </RevealOnScroll>
+          <View className="flex-row items-center gap-2 px-1">
+            <AlertTriangle color="#dc2626" size={22} />
+            <Text className="flex-1 text-base font-semibold text-red-800">{t("lowStockWarning")}</Text>
+          </View>
         ) : null}
 
         {!isLoading && products.length === 0 ? (
-          <RevealOnScroll>
-            <AppCard>
-              <EmptyState title={t("productsEmptyTitle")} message={t("productsEmptyMessage")} />
-            </AppCard>
-          </RevealOnScroll>
+          <AppCard>
+            <EmptyState title={t("productsEmptyTitle")} message={t("productsEmptyMessage")} />
+          </AppCard>
         ) : null}
 
         {!isLoading && products.length > 0 ? (
-          <RevealOnScroll>
           <ScrollView horizontal showsHorizontalScrollIndicator>
             <AppCard className="gap-0 overflow-hidden border-secondary_dark p-0" style={{ width: tableWidth + 2 }}>
               <View className="flex-row bg-secondary_dark">
@@ -633,7 +625,7 @@ export default function DashboardScreen() {
               {groupedProducts.map((group, groupIndex) => (
                 <View key={group.groupName}>
                   <View className="bg-primary/70 px-3 py-2">
-                    <Text className="text-base ml-2 font-semibold text-secondary_dark">{group.groupName}</Text>
+                    <Text className="text-base font-semibold text-secondary_dark">{group.groupName}</Text>
                   </View>
                   {group.products.map((product, productIndex) => {
                     const isLastRow = groupIndex === groupedProducts.length - 1 && productIndex === group.products.length - 1;
@@ -645,8 +637,7 @@ export default function DashboardScreen() {
                     const isLowQuantity = !product.isCounterProduct && endQuantity < product.minimumQuantityAlert;
 
                     return (
-                      <RevealOnScroll key={product.id} duration={560}>
-                        <View className={clsx("flex-row items-center bg-white", !isLastRow && "border-b border-primary")}>
+                      <View key={product.id} className={clsx("flex-row items-center bg-white", !isLastRow && "border-b border-primary")}>
                         <View style={{ width: tableColumns[0].width }} className="items-center px-2 py-3">
                           <View className="relative h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-secondary_dark bg-primary">
                             {product.imageUrl ? <Image source={{ uri: product.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={22} />}
@@ -689,19 +680,16 @@ export default function DashboardScreen() {
                         <View style={{ width: tableColumns[7].width }} className="justify-center px-2 py-3">
                           <Text numberOfLines={1} className="text-center text-base font-semibold text-secondary_dark">{formatMoney(totalEarnings)}</Text>
                         </View>
-                        </View>
-                      </RevealOnScroll>
+                      </View>
                     );
                   })}
                 </View>
               ))}
             </AppCard>
           </ScrollView>
-          </RevealOnScroll>
         ) : null}
 
         {!isLoading && financialItems.length > 0 ? (
-          <RevealOnScroll>
           <AppCard className="border-primary">
             <View className="flex-row items-center gap-2">
               <CircleDollarSign color={colors.secondaryDark} size={22} />
@@ -731,8 +719,7 @@ export default function DashboardScreen() {
               {financialEntries.map((item) => {
                 const iconColor = item.type === "revenue" ? "#16a34a" : "#dc2626";
                 return (
-                  <RevealOnScroll key={item.id} duration={560}>
-                    <View className="gap-2 rounded-md border border-primary bg-white p-3">
+                  <View key={item.id} className="gap-2 rounded-md border border-primary bg-white p-3">
                     <View className="flex-row items-start justify-between gap-3">
                       <View className="flex-1">
                         <View className="flex-row items-center gap-2">
@@ -748,8 +735,7 @@ export default function DashboardScreen() {
                       </Pressable>
                     </View>
                     {item.requiresExplanation ? <AppInput label={`${item.name} ${t("explanation")}`} value={item.explanation} onChangeText={(value) => updateFinancialExplanation(item.id, value)} /> : null}
-                    </View>
-                  </RevealOnScroll>
+                  </View>
                 );
               })}
             </View>
@@ -759,41 +745,36 @@ export default function DashboardScreen() {
               <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(financialTotals.expenses)}</Text>
             </View>
           </AppCard>
-          </RevealOnScroll>
         ) : null}
 
-        <RevealOnScroll>
-          <AppCard className="border-primary">
-            <View className="gap-3">
-              <AppInput label={t("inventoryDate")} value={inventoryDate} onChangeText={setInventoryDate} placeholder={formatDate(new Date())} />
-              <View className="gap-2">
-                <Text className="text-sm font-medium text-ink">{t("shift")}</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  <SortChip isSelected={shift === "first"} label={t("firstShift")} onPress={() => setShift("first")} />
-                  <SortChip isSelected={shift === "second"} label={t("secondShift")} onPress={() => setShift("second")} />
-                </View>
+        <AppCard className="border-primary">
+          <View className="gap-3">
+            <AppInput label={t("inventoryDate")} value={inventoryDate} onChangeText={setInventoryDate} placeholder={formatDate(new Date())} />
+            <View className="gap-2">
+              <Text className="text-sm font-medium text-ink">{t("shift")}</Text>
+              <View className="flex-row flex-wrap gap-2">
+                <SortChip isSelected={shift === "first"} label={t("firstShift")} onPress={() => setShift("first")} />
+                <SortChip isSelected={shift === "second"} label={t("secondShift")} onPress={() => setShift("second")} />
               </View>
             </View>
-          </AppCard>
-        </RevealOnScroll>
+          </View>
+        </AppCard>
 
-        <RevealOnScroll>
-          <AppCard className="border-secondary_dark bg-white">
-            <Text className="text-lg font-semibold text-secondary_dark">{t("inventorySummary")}</Text>
-            <View className="gap-3 rounded-md border border-primary bg-background p-4">
-              <View className="gap-2 border-b border-primary pb-3">
-                <Text className="text-base font-semibold text-secondary_dark">{t("totalProductEarnings")}: {formatMoney(summaryTotals.totalProductEarnings)}</Text>
-                <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(summaryTotals.totalRevenues)}</Text>
-                <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(summaryTotals.totalExpenses)}</Text>
-              </View>
-              <View className={clsx("rounded-md border px-4 py-3", summaryTotals.totalEarn >= 0 ? "border-green-700 bg-green-50" : "border-red-700 bg-red-50")}>
-                <Text className="text-sm font-semibold uppercase text-secondary_dark">{t("totalEarn")}</Text>
-                <Text className={clsx("mt-1 text-2xl font-bold", summaryTotals.totalEarn >= 0 ? "text-green-700" : "text-red-700")}>{formatMoney(summaryTotals.totalEarn)}</Text>
-              </View>
+        <AppCard className="border-secondary_dark bg-white">
+          <Text className="text-lg font-semibold text-secondary_dark">{t("inventorySummary")}</Text>
+          <View className="gap-3 rounded-md border border-primary bg-background p-4">
+            <View className="gap-2 border-b border-primary pb-3">
+              <Text className="text-base font-semibold text-secondary_dark">{t("totalProductEarnings")}: {formatMoney(summaryTotals.totalProductEarnings)}</Text>
+              <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(summaryTotals.totalRevenues)}</Text>
+              <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(summaryTotals.totalExpenses)}</Text>
             </View>
-            <AppButton label={t("finishInventoryManagement")} loading={isSaving} disabled={isSaving} onPress={openFinishConfirm} className="bg-secondary_dark" />
-          </AppCard>
-        </RevealOnScroll>
+            <View className={clsx("rounded-md border px-4 py-3", summaryTotals.totalEarn >= 0 ? "border-green-700 bg-green-50" : "border-red-700 bg-red-50")}>
+              <Text className="text-sm font-semibold uppercase text-secondary_dark">{t("totalEarn")}</Text>
+              <Text className={clsx("mt-1 text-2xl font-bold", summaryTotals.totalEarn >= 0 ? "text-green-700" : "text-red-700")}>{formatMoney(summaryTotals.totalEarn)}</Text>
+            </View>
+          </View>
+          <AppButton label={t("finishInventoryManagement")} loading={isSaving} disabled={isSaving} onPress={openFinishConfirm} className="bg-secondary_dark" />
+        </AppCard>
       </View>
       <AppModal visible={Boolean(productCellTarget)} onClose={closeProductCellModal}>
         <View className="gap-5">
