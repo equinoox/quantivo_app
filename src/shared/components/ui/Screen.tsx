@@ -7,14 +7,29 @@ import clsx from "clsx";
 import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
 import { AngledHeader } from "@/shared/components/ui/AngledHeader";
 import { RevealOnScrollContext } from "@/shared/components/ui/RevealOnScroll";
+import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 
 type ScreenProps = PropsWithChildren<{ backgroundFallbackSource?: ImageSourcePropType; backgroundImageUri?: string | null; backgroundOverlayClassName?: string; icon?: ReactNode; refreshControl?: ReactElement<RefreshControlProps>; showBackButton?: boolean; subtitle?: string; title?: string; scrollable?: boolean; tabPage?: boolean }>;
 
 export function Screen({ backgroundFallbackSource, backgroundImageUri, backgroundOverlayClassName, icon, refreshControl, showBackButton = false, subtitle, title, scrollable = true, tabPage = false, children }: ScreenProps) {
   const session = useAuthStore((state) => state.session);
+  const responsive = useResponsiveLayout();
   const [revealViewportHeight, setRevealViewportHeight] = useState(0);
   const [revealScrollY, setRevealScrollY] = useState(0);
-  const body = <View className="gap-5 px-5 py-6">{children}</View>;
+  const body = (
+    <View
+      className="self-center"
+      style={{
+        gap: responsive.gap,
+        maxWidth: responsive.contentMaxWidth,
+        paddingHorizontal: responsive.horizontalPadding,
+        paddingVertical: responsive.verticalPadding,
+        width: "100%",
+      }}
+    >
+      {children}
+    </View>
+  );
   const backgroundSource = backgroundImageUri ? { uri: backgroundImageUri } : (backgroundFallbackSource ?? require("../../../../assets/quantivo_bg.png"));
   const displayTitle = tabPage && session?.user.name && title ? `${session.user.name}` : title;
   return (

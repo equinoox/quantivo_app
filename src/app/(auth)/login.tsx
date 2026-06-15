@@ -12,12 +12,15 @@ import { AnimatedEntrance } from "@/shared/components/ui/AnimatedEntrance";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
+import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 import { useI18n } from "@/shared/i18n/useI18n";
 
-function QuantivoWordmark() {
+function QuantivoWordmark({ width = 300 }: { width?: number }) {
+  const height = (width / 300) * 58;
+
   return (
     <View className="items-center gap-2">
-      <Svg height={58} viewBox="0 0 300 58" width={300}>
+      <Svg height={height} viewBox="0 0 300 58" width={width}>
         <Defs>
           <LinearGradient id="quantivoGradient" x1="0" x2="1" y1="0" y2="0">
             <Stop offset="0" stopColor="#ffb347" />
@@ -48,7 +51,7 @@ function LoginField({ icon, rightElement, ...props }: TextInputProps & { icon: R
   return (
     <View className="min-h-14 flex-row items-center gap-3 rounded-xl border border-slate-300/25 bg-[#1b2026]/90 px-4">
       {icon}
-      <TextInput placeholderTextColor="#a8b0bd" className="h-full flex-1 text-base font-medium text-white" {...props} />
+      <TextInput placeholderTextColor="#a8b0bd" className="h-full min-w-0 flex-1 text-base font-medium text-white" {...props} />
       {rightElement}
     </View>
   );
@@ -61,10 +64,14 @@ export default function LoginScreen() {
   const businessName = useSetupStore((state) => state.status?.restaurantName);
   const businessLogoUri = useSetupStore((state) => state.status?.businessLogoUri);
   const businessBackgroundUri = useSetupStore((state) => state.status?.businessBackgroundUri);
+  const responsive = useResponsiveLayout();
   const { setValue, watch } = useForm<LoginInput>({ defaultValues: { identifier: "", password: "" } });
   const formValues = watch();
   const logoSource = businessLogoUri ? { uri: businessLogoUri } : undefined;
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const loginCardPadding = responsive.isExtraSmallPhone ? 18 : responsive.isSmallPhone ? 22 : 28;
+  const logoSize = responsive.isExtraSmallPhone ? 104 : responsive.isSmallPhone ? 116 : 128;
+  const wordmarkWidth = responsive.isExtraSmallPhone ? 244 : responsive.isSmallPhone ? 264 : 300;
 
   const handleSubmit = async () => {
     const parsed = loginSchema.safeParse(formValues);
@@ -83,23 +90,29 @@ export default function LoginScreen() {
   return (
     <Screen scrollable backgroundFallbackSource={require("../../../assets/default_bg.png")} backgroundImageUri={businessBackgroundUri} backgroundOverlayClassName="bg-slate-900/52">
       <AnimatedEntrance>
-        <View className="min-h-[800px] flex-1 justify-between pb-0 pt-3">
-          <QuantivoWordmark />
+        <View
+          className="flex-1 justify-between pb-0 pt-3"
+          style={{
+            gap: responsive.isSmallPhone ? 18 : 24,
+            minHeight: Math.max(responsive.window.height - 120, responsive.isSmallPhone ? 650 : 760),
+          }}
+        >
+          <QuantivoWordmark width={wordmarkWidth} />
 
           <View
-            className={`gap-5 self-center rounded-[24px] border border-orange/45 bg-[#242a31]/95 px-8 py-6`}
-            style={{ elevation: 18, shadowColor: "#000000", shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.3, shadowRadius: 24 }}
+            className="gap-5 self-center rounded-[24px] border border-orange/45 bg-[#242a31]/95"
+            style={{ elevation: 18, maxWidth: responsive.formMaxWidth, padding: loginCardPadding, shadowColor: "#000000", shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.3, shadowRadius: 24, width: "100%" }}
           >
             <View className="items-center gap-3">
               {logoSource ? (
-                <View className="h-32 w-32 items-center justify-center rounded-full border border-slate-200/25 bg-[#1b2026]/90 p-1.5">
+                <View className="items-center justify-center rounded-full border border-slate-200/25 bg-[#1b2026]/90 p-1.5" style={{ height: logoSize, width: logoSize }}>
                   <View className="h-full w-full items-center justify-center overflow-hidden rounded-full bg-black p-2">
                     <Image source={logoSource} className="h-full w-full" resizeMode="contain" />
                   </View>
                 </View>
               ) : null}
               <View className="items-center gap-1">
-                <Text className="text-center text-3xl font-bold leading-tight text-white" style={{ fontFamily: "serif", textShadowColor: "rgba(0,0,0,0.45)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }}>
+                <Text adjustsFontSizeToFit minimumFontScale={0.78} numberOfLines={2} className="text-center text-3xl font-bold leading-tight text-white" style={{ fontFamily: "serif", textShadowColor: "rgba(0,0,0,0.45)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 }}>
                   {businessName || "Quantivo"}
                 </Text>
                 <Text className="text-center text-base font-semibold text-slate-300">{t("loginPrompt")}</Text>
@@ -153,16 +166,16 @@ export default function LoginScreen() {
               <View className="h-px flex-1 bg-slate-300/35" />
               <View className="flex-row items-center gap-2">
                 <ShieldCheck color="#ffb35c" size={19} />
-                <Text className="text-sm font-semibold text-slate-300">{t("secureAccess")}</Text>
+                <Text numberOfLines={2} className="min-w-0 flex-shrink text-sm font-semibold text-slate-300">{t("secureAccess")}</Text>
               </View>
               <View className="h-px flex-1 bg-slate-300/35" />
             </View>
           </View>
 
           <View className="items-center">
-            <View className="flex-row items-center gap-2 rounded-md bg-slate-950/65 px-4 py-3">
+            <View className="max-w-full flex-row items-center gap-2 rounded-md bg-slate-950/65 px-4 py-3">
               <ShieldCheck color="#ffb35c" size={17} />
-              <Text className="text-sm font-semibold text-slate-200">{"\u00a9 2026 Quantivo. All rights reserved. Development"}</Text>
+              <Text numberOfLines={2} className="min-w-0 flex-shrink text-center text-sm font-semibold text-slate-200">{"\u00a9 2026 Quantivo. All rights reserved. Development"}</Text>
             </View>
           </View>
         </View>

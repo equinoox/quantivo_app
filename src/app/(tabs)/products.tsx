@@ -21,6 +21,7 @@ import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
 import { useAppToast } from "@/shared/hooks/useAppToast";
 import { useProtectedRoute } from "@/shared/hooks/useProtectedRoute";
+import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { useAppFormatters } from "@/features/setup/hooks/useAppFormatters";
 
@@ -126,6 +127,7 @@ export default function ProductsScreen() {
   const toast = useAppToast();
   const { t } = useI18n();
   const { formatMoney } = useAppFormatters();
+  const responsive = useResponsiveLayout();
   const [products, setProducts] = useState<Product[]>([]);
   const [attributes, setAttributes] = useState<CatalogItem[]>([]);
   const [categories, setCategories] = useState<CatalogItem[]>([]);
@@ -309,9 +311,9 @@ export default function ProductsScreen() {
 
         {isAdmin && selectedIds.length > 0 ? (
           <RevealOnScroll>
-            <View className="flex-row items-center justify-between gap-3 rounded-md border border-orange bg-primary px-3 py-2">
+            <View className="flex-row flex-wrap items-center justify-between gap-3 rounded-md border border-orange bg-primary px-3 py-2">
               <Text className="flex-1 text-sm font-semibold text-secondary_dark">{t("selectedProducts").replace("{count}", selectedIds.length.toString())}</Text>
-              <View className="flex-row gap-2">
+              <View className="flex-row flex-wrap gap-2">
                 {selectedIds.length === 1 ? <ToolbarButton icon={<Pencil color={colors.secondaryDark} size={15} />} label={t("edit")} onPress={openEditForm} /> : null}
                 <ToolbarButton icon={<Trash2 color="#ffffff" size={15} />} label={selectedIds.length === 1 ? t("delete") : t("bulkDelete")} tone="danger" onPress={() => setIsDeleteConfirmVisible(true)} />
               </View>
@@ -375,11 +377,11 @@ export default function ProductsScreen() {
             </View>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" className="max-h-[500px]">
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: Math.min(500, responsive.window.height - 240) }}>
             <View className="gap-3">
               <AppInput label={t("name")} value={form.name} onChangeText={(value) => updateForm("name", value)} autoCapitalize="words" />
               <AppInput label={t("price")} value={form.price} onChangeText={(value) => updateNumericForm("price", value)} keyboardType="decimal-pad" placeholder={formatMoney(0)} />
-              <View className="flex-row gap-3">
+              <View className={clsx(responsive.isSmallPhone ? "gap-3" : "flex-row gap-3")}>
                 <NumberStepper disabled={form.isCounterProduct} label={t("minimumQuantityAlert")} value={form.minimumQuantityAlert} onChangeText={(value) => updateNumericForm("minimumQuantityAlert", value)} keyboardType="decimal-pad" />
                 <NumberStepper label={t("position")} value={form.position} onChangeText={(value) => updateIntegerForm("position", value)} keyboardType="number-pad" />
               </View>
@@ -395,7 +397,7 @@ export default function ProductsScreen() {
               <AppInput label={t("description")} value={form.description} onChangeText={(value) => updateForm("description", value)} multiline />
               <View className="gap-2">
                 <Text className="text-sm font-medium text-ink">{t("image")}</Text>
-                <View className="flex-row items-center gap-3">
+                <View className="flex-row flex-wrap items-center gap-3">
                   <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-primary">
                     {form.imageUrl ? <Image source={{ uri: form.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={28} />}
                   </View>

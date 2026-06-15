@@ -164,7 +164,7 @@ export default function WorkersManagementScreen() {
     <Screen icon={<UsersRound color={colors.secondaryDark} size={36} />} title={t("workersManagement")} subtitle={t("workersManagementSubtitle")} showBackButton>
       <View className="gap-4">
         <RevealOnScroll>
-          <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-row flex-wrap items-center justify-between gap-3">
             <Text className="text-sm font-semibold text-secondary">{workerCountLabel}</Text>
             <AppButton label={t("createWorker")} onPress={openCreateForm} className="bg-secondary_dark" />
           </View>
@@ -195,11 +195,11 @@ export default function WorkersManagementScreen() {
                         <Text className="text-xs font-semibold text-secondary_dark">{worker.role}</Text>
                       </View>
                     </View>
-                    <View className="flex-row gap-3">
+                    <View className="flex-row flex-wrap gap-3">
                       <Text className="text-sm text-secondary">{t("age")}: {worker.age}</Text>
                       <Text className="text-sm text-secondary">{t("workerType")}: {worker.workerType || "-"}</Text>
                     </View>
-                    <View className="flex-row gap-2">
+                    <View className="flex-row flex-wrap gap-2">
                       <Pressable onPress={() => openEditForm(worker)} className="min-h-10 flex-1 flex-row items-center justify-center gap-2 rounded-md border border-primary bg-white px-3">
                         <Pencil color={colors.secondaryDark} size={16} />
                         <Text className="font-semibold text-secondary_dark">{t("edit")}</Text>
@@ -218,7 +218,7 @@ export default function WorkersManagementScreen() {
       </View>
 
       <AppModal visible={isFormVisible} onClose={closeForm}>
-        <View className="max-h-[88%] gap-5">
+        <View className="gap-5">
           <View>
             <Text className="text-xl font-semibold text-secondary_dark">{editingWorker ? t("updateWorker") : t("createWorker")}</Text>
             <Text className="mt-1 text-sm text-muted">{t("workersManagementSubtitle")}</Text>

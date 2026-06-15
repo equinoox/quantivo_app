@@ -1,5 +1,5 @@
 import { ReactNode, useRef, useState } from "react";
-import { Dimensions, Modal, Pressable, ScrollView, Text, View, ViewProps } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View, ViewProps } from "react-native";
 import clsx from "clsx";
 import { Bell, ChevronLeft } from "lucide-react-native";
 
@@ -10,6 +10,7 @@ import { useAppFormatters } from "@/features/setup/hooks/useAppFormatters";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { AppModal } from "@/shared/components/ui/AppModal";
 import { colors } from "@/shared/constants/colors";
+import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 type AngledHeaderProps = ViewProps & {
@@ -35,9 +36,10 @@ function formatNotification(notification: InventoryNotification, t: (key: string
   return `${notification.actorNameSnapshot} | ${notification.productNameSnapshot ?? ""} | ${notification.columnLabelSnapshot ?? ""} | ${notification.oldValue ?? 0} -> ${notification.newValue ?? 0} | ${formatDateTime(notification.createdAt)}`;
 }
 
-export function AngledHeader({ icon, kicker, onBack, showBackButton = false, title, subtitle, compact = false, showDate = true, showNotifications = false, className, ...props }: AngledHeaderProps) {
+export function AngledHeader({ icon, kicker, onBack, showBackButton = false, title, subtitle, compact = false, showDate = true, showNotifications = false, className, style, ...props }: AngledHeaderProps) {
   const { t } = useI18n();
   const session = useAuthStore((state) => state.session);
+  const responsive = useResponsiveLayout();
   const { formatDate, formatDateTime } = useAppFormatters();
   const currentDate = formatDate(new Date());
   const canSeeNotifications = showNotifications && session?.user.role === "admin";
@@ -59,9 +61,8 @@ export function AngledHeader({ icon, kicker, onBack, showBackButton = false, tit
     const nextVisible = !isDropdownVisible;
     if (nextVisible) {
       bellRef.current?.measureInWindow((x, y, width, height) => {
-        const screenWidth = Dimensions.get("window").width;
         setDropdownPosition({
-          right: Math.max(12, screenWidth - x - width),
+          right: Math.max(12, responsive.window.width - x - width),
           top: y + height + 8,
         });
       });
@@ -89,21 +90,21 @@ export function AngledHeader({ icon, kicker, onBack, showBackButton = false, tit
 
   return (
     <>
-      <View className={clsx("bg-secondary_dark px-5", compact ? "pb-9 pt-8" : "pb-12 pt-10", className)} {...props}>
-        <View className="gap-3">
+      <View className={clsx("bg-secondary_dark", compact ? "pb-9 pt-8" : "pb-12 pt-10", className)} style={[{ paddingHorizontal: responsive.horizontalPadding }, style]} {...props}>
+        <View className="self-center gap-3" style={{ maxWidth: responsive.contentMaxWidth, width: "100%" }}>
           {kicker ? <Text className="text-xs font-semibold uppercase tracking-widest text-orange">{kicker}</Text> : null}
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row flex-wrap items-center gap-3">
             {showBackButton ? (
               <Pressable accessibilityRole="button" onPress={onBack} className="h-10 w-10 items-center justify-center rounded-md">
                 <ChevronLeft color={colors.orange} size={28} />
               </Pressable>
             ) : null}
-            {icon ? <View className="h-14 w-14 items-center justify-center bg-primary rounded-md">{icon}</View> : null}
-            <Text className={clsx("flex-1 font-bold leading-tight text-text_color_2", compact ? "text-2xl" : "text-3xl")}>{title}</Text>
-            <View className="flex-row items-center gap-2">
+            {icon ? <View className={clsx("items-center justify-center rounded-md bg-primary", responsive.isExtraSmallPhone ? "h-12 w-12" : "h-14 w-14")}>{icon}</View> : null}
+            <Text adjustsFontSizeToFit={responsive.isSmallPhone} minimumFontScale={0.82} numberOfLines={2} className={clsx("min-w-0 flex-1 font-bold leading-tight text-text_color_2", compact ? "text-2xl" : "text-3xl")}>{title}</Text>
+            <View className="ml-auto flex-row flex-wrap items-center justify-end gap-2">
               {showDate ? (
                 <View className="rounded-md bg-primary px-3 py-2">
-                  <Text className="text-xs font-semibold text-secondary_dark">{currentDate}</Text>
+                  <Text numberOfLines={1} className="text-xs font-semibold text-secondary_dark">{currentDate}</Text>
                 </View>
               ) : null}
               {canSeeNotifications ? (
@@ -119,7 +120,7 @@ export function AngledHeader({ icon, kicker, onBack, showBackButton = false, tit
         <Pressable className="flex-1 bg-transparent" onPress={() => setIsDropdownVisible(false)}>
           <View
             onStartShouldSetResponder={() => true}
-            style={{ elevation: 16, position: "absolute", right: dropdownPosition.right, top: dropdownPosition.top, width: 288 }}
+            style={{ elevation: 16, maxWidth: responsive.window.width - 24, position: "absolute", right: dropdownPosition.right, top: dropdownPosition.top, width: Math.min(288, responsive.window.width - 24) }}
             className="rounded-md border border-primary bg-white p-3"
           >
             <View className="mb-2 flex-row items-center justify-between gap-3 border-b border-primary pb-2">
@@ -142,7 +143,7 @@ export function AngledHeader({ icon, kicker, onBack, showBackButton = false, tit
         <View className="gap-4">
           <Text className="text-xl font-semibold text-secondary_dark">{t("notifications")}</Text>
           <ScrollView
-            className="max-h-[520px]"
+            style={{ maxHeight: Math.min(520, responsive.window.height - 180) }}
             onScroll={({ nativeEvent }) => {
               const distanceFromBottom = nativeEvent.contentSize.height - nativeEvent.layoutMeasurement.height - nativeEvent.contentOffset.y;
               if (distanceFromBottom < 80) void loadMoreNotifications();

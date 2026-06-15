@@ -1,12 +1,13 @@
 import { router } from "expo-router";
 import { BrainCircuit, Cloud, DollarSign, Link, Server, ShoppingCart } from "lucide-react-native";
 import { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { colors } from "@/shared/constants/colors";
+import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 type IntegrationTone = "default" | "google" | "quantivo";
@@ -53,16 +54,16 @@ function IntegrationGradient({ tone }: { tone: Exclude<IntegrationTone, "default
   );
 }
 
-function IntegrationCard({ activateLabel, icon, title, tone = "default" }: { activateLabel: string; icon: ReactNode; title: string; tone?: IntegrationTone }) {
+function IntegrationCard({ activateLabel, icon, style, title, tone = "default" }: { activateLabel: string; icon: ReactNode; style?: ViewStyle; title: string; tone?: IntegrationTone }) {
   const borderClass = tone === "google" ? "border-white" : "border-primary";
 
   return (
-    <View className={`min-h-16 overflow-hidden rounded-md border bg-white shadow-sm ${borderClass}`} style={{ elevation: 2, shadowColor: colors.secondaryDark, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 5 }}>
+    <View className={`min-h-16 overflow-hidden rounded-md border bg-white shadow-sm ${borderClass}`} style={[{ elevation: 2, shadowColor: colors.secondaryDark, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 5 }, style]}>
       {tone !== "default" ? <IntegrationGradient tone={tone} /> : null}
-      <View className="flex-row items-center gap-3 px-3 py-3">
+      <View className="flex-row flex-wrap items-center gap-3 px-3 py-3">
         <View className="h-11 w-11 items-center justify-center rounded-md bg-white">{icon}</View>
-        <Text className="flex-1 text-base font-semibold text-secondary_dark">{title}</Text>
-        <View className="min-w-24">
+        <Text numberOfLines={2} className="min-w-0 flex-1 text-base font-semibold text-secondary_dark">{title}</Text>
+        <View className="min-w-24 flex-shrink-0">
           <AppButton label={activateLabel} className="bg-secondary_dark" />
         </View>
       </View>
@@ -72,6 +73,8 @@ function IntegrationCard({ activateLabel, icon, title, tone = "default" }: { act
 
 export default function IntegrationsSetupScreen() {
   const { t } = useI18n();
+  const responsive = useResponsiveLayout();
+  const cardStyle: ViewStyle = responsive.isTablet ? { flexBasis: "48%", flexGrow: 1 } : { width: "100%" };
   const cards = [
     { icon: <Server color={colors.secondaryDark} size={22} />, title: t("integrationServer") },
     { icon: <Cloud color={colors.secondaryDark} size={22} />, title: t("integrationCloud") },
@@ -95,8 +98,8 @@ export default function IntegrationsSetupScreen() {
         </>
       }
     >
-      <View className="gap-3">
-        {cards.map((card) => <IntegrationCard key={card.title} activateLabel={t("activate")} icon={card.icon} title={card.title} tone={card.tone} />)}
+      <View className="flex-row flex-wrap gap-3">
+        {cards.map((card) => <IntegrationCard key={card.title} activateLabel={t("activate")} icon={card.icon} style={cardStyle} title={card.title} tone={card.tone} />)}
       </View>
     </SetupScreen>
   );

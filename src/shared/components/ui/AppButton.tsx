@@ -20,7 +20,13 @@ export function AppButton({ label, children, variant = "primary", loading = fals
   return (
     <Animated.View style={{ alignSelf: "stretch", transform: [{ scale }] }}>
       <Pressable disabled={disabled || loading} className={clsx("min-h-12 items-center justify-center rounded-lg px-4", variant === "primary" && "bg-brand-500", variant === "secondary" && "border border-slate-300 bg-white", variant === "danger" && "bg-red-600", (disabled || loading) && "opacity-60", className)} {...props} onPressIn={handlePressIn} onPressOut={handlePressOut}>
-        {loading ? <ActivityIndicator color={variant === "secondary" ? "#172033" : "#ffffff"} /> : <Text className={clsx("font-semibold", variant === "secondary" ? "text-ink" : "text-white")}>{label ?? children}</Text>}
+        {loading ? (
+          <ActivityIndicator color={variant === "secondary" ? "#172033" : "#ffffff"} />
+        ) : (
+          <Text adjustsFontSizeToFit minimumFontScale={0.86} numberOfLines={2} className={clsx("text-center font-semibold", variant === "secondary" ? "text-ink" : "text-white")}>
+            {label ?? children}
+          </Text>
+        )}
       </Pressable>
     </Animated.View>
   );

@@ -17,6 +17,5 @@
         "src/shared/*"
       ]
     },
-    "ignoreDeprecations": "6.0"
   }
 }

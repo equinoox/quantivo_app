@@ -155,7 +155,7 @@ export default function RevenuesExpensesScreen() {
             <View className={clsx("h-6 w-6 items-center justify-center rounded border", form.requiresExplanation ? "border-orange bg-orange" : "border-primary bg-white")}>
               {form.requiresExplanation ? <Check color={colors.secondaryDark} size={16} strokeWidth={3} /> : null}
             </View>
-            <View className="flex-1">
+            <View className="min-w-0 flex-1">
               <Text className="font-semibold text-secondary_dark">{t("explanation")}</Text>
               <Text className="text-sm leading-5 text-muted">{t("explanationFinancialItemHint")}</Text>
             </View>
@@ -180,7 +180,7 @@ export default function RevenuesExpensesScreen() {
               <RevealOnScroll key={item.id} duration={560}>
                 <AppCard className="border-primary">
                   <View className="flex-row items-center justify-between gap-3">
-                    <View className="flex-1">
+                    <View className="min-w-0 flex-1">
                       <Text className="text-lg font-semibold text-secondary_dark">{item.name}</Text>
                       <Text className="mt-1 text-sm text-muted">{getTypeLabel(item.type, t)} / {getBehaviorLabel(item.behavior, t)}{item.requiresExplanation ? ` / ${t("explanation")}` : ""}</Text>
                     </View>
