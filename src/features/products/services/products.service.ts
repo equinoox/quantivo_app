@@ -4,10 +4,7 @@ import { listCatalogItems } from "@/features/products/services/catalog.service";
 import { CatalogItem, Product, ProductInput, UnitQuantityType } from "@/features/products/types/product.types";
 import { db } from "@/shared/lib/db/client";
 import { attributes, categories, inventoryItems, productAttributes, products, units } from "@/shared/lib/db/schema";
-
-function createProductId(): string {
-  return `prd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 function normalizeName(name: string): string {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
@@ -142,7 +139,7 @@ function toInsertValues(id: string, input: ProductInput, now: string): ProductRo
 export async function createProduct(input: ProductInput): Promise<Product> {
   await assertProductNameAvailable(input.name);
   const now = new Date().toISOString();
-  const id = createProductId();
+  const id = createLocalId("prd");
   await db.insert(products).values(toInsertValues(id, input, now));
   await replaceProductAttributes(id, input.attributeIds);
   const [product] = (await listProducts()).filter((item) => item.id === id);

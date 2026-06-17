@@ -3,10 +3,7 @@ import { desc } from "drizzle-orm";
 import { CreateInventoryFieldChangeNotificationInput, CreateShiftFinishedNotificationInput, InventoryNotification } from "@/features/notifications/types/notification.types";
 import { db } from "@/shared/lib/db/client";
 import { inventoryNotifications } from "@/shared/lib/db/schema";
-
-function createLocalId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 export async function createInventoryFieldChangeNotification(input: CreateInventoryFieldChangeNotificationInput): Promise<void> {
   await db.insert(inventoryNotifications).values({

@@ -1,5 +1,38 @@
 import { sqlite } from "@/shared/lib/db/client";
 
+export const LATEST_SCHEMA_VERSION = 1;
+
+const SCHEMA_VERSION_KEY = "schema_version";
+
+async function ensureAppSettingsTable(): Promise<void> {
+  await sqlite.execAsync(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+}
+
+export async function getCurrentSchemaVersion(): Promise<number> {
+  await ensureAppSettingsTable();
+  const row = await sqlite.getFirstAsync<{ value: string }>(`SELECT value FROM app_settings WHERE key = '${SCHEMA_VERSION_KEY}' LIMIT 1;`);
+  const version = Number(row?.value);
+  return Number.isInteger(version) && version >= 0 ? version : 0;
+}
+
+export async function setCurrentSchemaVersion(version: number): Promise<void> {
+  await ensureAppSettingsTable();
+  const updatedAt = new Date().toISOString();
+  await sqlite.execAsync(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES ('${SCHEMA_VERSION_KEY}', '${version}', '${updatedAt}')
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = excluded.updated_at;
+  `);
+}
+
 export async function resetDatabase(): Promise<void> {
   await sqlite.execAsync(`
     PRAGMA foreign_keys = OFF;
@@ -26,8 +59,7 @@ export async function resetDatabase(): Promise<void> {
   await runMigrations();
 }
 
-export async function runMigrations(): Promise<void> {
-  // Future versions should replace this with tracked Drizzle migrations.
+async function runBaselineSchemaMigration(): Promise<void> {
   await sqlite.execAsync(`
     PRAGMA foreign_keys = ON;
 
@@ -261,4 +293,18 @@ export async function runMigrations(): Promise<void> {
   if (!productColumns.some((column) => column.name === "is_counter_product")) {
     await sqlite.execAsync("ALTER TABLE products ADD COLUMN is_counter_product INTEGER NOT NULL DEFAULT 0;");
   }
+}
+
+export async function runVersionedMigrations(): Promise<void> {
+  await sqlite.execAsync("PRAGMA foreign_keys = ON;");
+
+  const currentVersion = await getCurrentSchemaVersion();
+  if (currentVersion < LATEST_SCHEMA_VERSION) {
+    await runBaselineSchemaMigration();
+    await setCurrentSchemaVersion(LATEST_SCHEMA_VERSION);
+  }
+}
+
+export async function runMigrations(): Promise<void> {
+  await runVersionedMigrations();
 }

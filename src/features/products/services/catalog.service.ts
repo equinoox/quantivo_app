@@ -3,10 +3,11 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { CatalogItem, TaxonomyKind, UnitQuantityType } from "@/features/products/types/product.types";
 import { db } from "@/shared/lib/db/client";
 import { attributes, categories, productAttributes, products, units } from "@/shared/lib/db/schema";
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 function createCatalogId(kind: TaxonomyKind): string {
   const prefixByKind: Record<TaxonomyKind, string> = { attributes: "att", categories: "cat", units: "unt" };
-  return `${prefixByKind[kind]}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  return createLocalId(prefixByKind[kind]);
 }
 
 function normalizeName(name: string): string {

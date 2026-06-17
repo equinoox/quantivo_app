@@ -14,8 +14,8 @@ import { LoadingState } from "@/shared/components/ui/LoadingState";
 import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
+import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
 import { useAppToast } from "@/shared/hooks/useAppToast";
-import { useProtectedRoute } from "@/shared/hooks/useProtectedRoute";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 type TaxonomyManagementScreenProps = { kind: TaxonomyKind };
@@ -45,7 +45,7 @@ const metaByKind = {
 } as const;
 
 export function TaxonomyManagementScreen({ kind }: TaxonomyManagementScreenProps) {
-  const { session } = useProtectedRoute();
+  const session = useAuthStore((state) => state.session);
   const toast = useAppToast();
   const { t } = useI18n();
   const meta = metaByKind[kind];

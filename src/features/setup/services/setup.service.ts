@@ -1,10 +1,13 @@
 import { count, eq } from "drizzle-orm";
 
+import { DEFAULT_SESSION_TIMEOUT_MINUTES, parseSessionTimeoutMinutes, serializeSessionTimeoutMinutes, SESSION_TIMEOUT_SETTING_KEY } from "@/features/auth/services/session.service";
 import { createLoginKeyForFullName, hashPasswordForLocalDemo } from "@/features/auth/services/local-auth.service";
 import { AppCurrency, AppDateFormat, AppLanguage, AppTimeFormat, CompleteSetupInput, SetupStatus, WorkspaceSettingsInput } from "@/features/setup/types/setup.types";
 import { db } from "@/shared/lib/db/client";
 import { resetDatabase } from "@/shared/lib/db/migrations";
 import { appSettings, users } from "@/shared/lib/db/schema";
+import { AppError } from "@/shared/lib/errors/AppError";
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 const LANGUAGE_KEY = "language";
 const RESTAURANT_NAME_KEY = "restaurant_name";
@@ -15,10 +18,12 @@ const DATE_FORMAT_KEY = "date_format";
 const TIME_FORMAT_KEY = "time_format";
 const CURRENCY_KEY = "currency";
 const SETUP_COMPLETED_AT_KEY = "setup_completed_at";
+export const SETUP_ALREADY_COMPLETED_ERROR = "SETUP_ALREADY_COMPLETED";
 export const DEFAULT_TIMEZONE = "Europe/Belgrade";
 export const DEFAULT_DATE_FORMAT: AppDateFormat = "dd/MM/yyyy";
 export const DEFAULT_TIME_FORMAT: AppTimeFormat = "24h";
 export const DEFAULT_CURRENCY: AppCurrency = "RSD";
+export const DEFAULT_SESSION_TIMEOUT = DEFAULT_SESSION_TIMEOUT_MINUTES;
 
 function toDateFormat(value: string | undefined): AppDateFormat {
   if (value === "MM/dd/yyyy" || value === "dd/MM/yyyy" || value === "dd.MM.yyyy" || value === "yyyy-MM-dd") return value;
@@ -33,10 +38,6 @@ function toTimeFormat(value: string | undefined): AppTimeFormat {
 function toCurrency(value: string | undefined): AppCurrency {
   if (value === "RSD" || value === "EUR" || value === "USD") return value;
   return DEFAULT_CURRENCY;
-}
-
-function createLocalId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 async function setSetting(key: string, value: string): Promise<void> {
@@ -64,6 +65,7 @@ export async function getSetupStatus(): Promise<SetupStatus> {
   const dateFormat = toDateFormat(settingsByKey.get(DATE_FORMAT_KEY));
   const timeFormat = toTimeFormat(settingsByKey.get(TIME_FORMAT_KEY));
   const currency = toCurrency(settingsByKey.get(CURRENCY_KEY));
+  const sessionTimeoutMinutes = parseSessionTimeoutMinutes(settingsByKey.get(SESSION_TIMEOUT_SETTING_KEY));
   const adminCount = adminResult?.value ?? 0;
   const isComplete = Boolean(settingsByKey.get(SETUP_COMPLETED_AT_KEY) && language && restaurantName && adminCount > 0);
 
@@ -77,11 +79,17 @@ export async function getSetupStatus(): Promise<SetupStatus> {
     dateFormat,
     timeFormat,
     currency,
+    sessionTimeoutMinutes,
     adminCount,
   };
 }
 
 export async function completeInitialSetup(input: CompleteSetupInput): Promise<SetupStatus> {
+  const currentStatus = await getSetupStatus();
+  if (currentStatus.isComplete) {
+    throw new AppError(SETUP_ALREADY_COMPLETED_ERROR, SETUP_ALREADY_COMPLETED_ERROR);
+  }
+
   const now = new Date().toISOString();
   const normalizedAdmins = input.admins.map((admin) => ({
     ...admin,
@@ -119,6 +127,7 @@ export async function completeInitialSetup(input: CompleteSetupInput): Promise<S
   await setSetting(DATE_FORMAT_KEY, input.dateFormat);
   await setSetting(TIME_FORMAT_KEY, input.timeFormat);
   await setSetting(CURRENCY_KEY, input.currency);
+  await setSetting(SESSION_TIMEOUT_SETTING_KEY, serializeSessionTimeoutMinutes(input.sessionTimeoutMinutes));
   await setSetting(SETUP_COMPLETED_AT_KEY, now);
 
   return getSetupStatus();
@@ -131,6 +140,7 @@ export async function saveWorkspaceSettings(input: WorkspaceSettingsInput): Prom
   await setSetting(DATE_FORMAT_KEY, input.dateFormat);
   await setSetting(TIME_FORMAT_KEY, input.timeFormat);
   await setSetting(CURRENCY_KEY, input.currency);
+  await setSetting(SESSION_TIMEOUT_SETTING_KEY, serializeSessionTimeoutMinutes(input.sessionTimeoutMinutes));
 
   if (input.businessLogoUri?.trim()) await setSetting(BUSINESS_LOGO_URI_KEY, input.businessLogoUri.trim());
   else await deleteSetting(BUSINESS_LOGO_URI_KEY);

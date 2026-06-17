@@ -1,3 +1,5 @@
+import type { SessionTimeoutMinutes } from "@/features/auth/services/session.service";
+
 export type AppLanguage = "en" | "sr";
 export type AppDateFormat = "MM/dd/yyyy" | "dd/MM/yyyy" | "dd.MM.yyyy" | "yyyy-MM-dd";
 export type AppTimeFormat = "12h" | "24h";
@@ -19,6 +21,7 @@ export type SetupStatus = {
   dateFormat: AppDateFormat;
   timeFormat: AppTimeFormat;
   currency: AppCurrency;
+  sessionTimeoutMinutes: SessionTimeoutMinutes | null;
   adminCount: number;
 };
 
@@ -31,6 +34,7 @@ export type CompleteSetupInput = {
   dateFormat: AppDateFormat;
   timeFormat: AppTimeFormat;
   currency: AppCurrency;
+  sessionTimeoutMinutes: SessionTimeoutMinutes | null;
   admins: SetupAdminInput[];
 };
 
@@ -43,4 +47,5 @@ export type WorkspaceSettingsInput = {
   dateFormat: AppDateFormat;
   timeFormat: AppTimeFormat;
   currency: AppCurrency;
+  sessionTimeoutMinutes: SessionTimeoutMinutes | null;
 };

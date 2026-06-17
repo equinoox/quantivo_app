@@ -3,12 +3,9 @@ import { and, desc, eq, ne } from "drizzle-orm";
 import { FinishedInventoryList, FinishInventoryListInput, InventoryListDetail, InventoryListFinancialEntryDetail, InventoryListProductDetail, InventoryListSummary, UpdateInventoryListInput } from "@/features/inventory/types/inventory.types";
 import { db } from "@/shared/lib/db/client";
 import { categories, inventoryItems, inventoryListFinancialEntries, inventoryListItems, inventoryLists, inventoryNotifications, products as productTable, units, users } from "@/shared/lib/db/schema";
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 export const INVENTORY_LIST_DUPLICATE_ERROR = "INVENTORY_LIST_DUPLICATE";
-
-function createLocalId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function getStoredExpression(expression: string, value: number): string {
   return expression.trim() || value.toString();

@@ -2,19 +2,16 @@ import { desc, eq, isNull } from "drizzle-orm";
 
 import { createLoginKeyForFullName, hashPasswordForLocalDemo } from "@/features/auth/services/local-auth.service";
 import { CreateWorkerInput, UpdateWorkerInput, Worker, WorkerRole } from "@/features/workers/types/worker.types";
+import { UserRole } from "@/shared/constants/roles";
 import { db } from "@/shared/lib/db/client";
 import { users, workers } from "@/shared/lib/db/schema";
-import { UserRole } from "@/shared/constants/roles";
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 const authRoleByWorkerRole: Record<WorkerRole, UserRole> = {
   Admin: "admin",
   Manager: "manager",
   Worker: "worker",
 };
-
-function createLocalId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
 
 function toWorker(row: typeof workers.$inferSelect): Worker {
   return {

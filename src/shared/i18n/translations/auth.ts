@@ -13,7 +13,7 @@ export const authTranslations: FeatureTranslations = {
     invalidLogin: "Invalid full name or password",
     checkLogin: "Check your login details",
     sessionExpiredTitle: "Session expired",
-    sessionExpiredMessage: "You were inactive for 3 minutes. Press the button below to end this session and return to login.",
+    sessionExpiredMessage: "Your session expired. Press the button below to end this session and return to login.",
     fullNamePasswordRequired: "Full name and a 6 digit numeric password are required.",
   },
   sr: {
@@ -28,7 +28,7 @@ export const authTranslations: FeatureTranslations = {
     invalidLogin: "Pogresno ime i prezime ili lozinka",
     checkLogin: "Proverite podatke za prijavu",
     sessionExpiredTitle: "Sesija je istekla",
-    sessionExpiredMessage: "Bili ste neaktivni 3 minuta. Pritisnite dugme ispod da zavrsite sesiju i vratite se na prijavu.",
+    sessionExpiredMessage: "Vasa sesija je istekla. Pritisnite dugme ispod da zavrsite sesiju i vratite se na prijavu.",
     fullNamePasswordRequired: "Ime i prezime i numericka lozinka od 6 cifara su obavezni.",
   },
 };

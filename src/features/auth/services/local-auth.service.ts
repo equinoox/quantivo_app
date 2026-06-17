@@ -1,6 +1,7 @@
 import * as Crypto from "expo-crypto";
 import { eq } from "drizzle-orm";
 
+import { createAuthSession, getSessionTimeoutMinutes } from "@/features/auth/services/session.service";
 import { AuthSession } from "@/features/auth/types/auth.types";
 import { LoginInput } from "@/features/auth/validation/auth.schemas";
 import { db } from "@/shared/lib/db/client";
@@ -24,11 +25,10 @@ export async function loginLocal(input: LoginInput): Promise<Result<AuthSession>
   const passwordHash = await hashPasswordForLocalDemo(input.password);
   if (user.passwordHash !== passwordHash) return { ok: false, error: "Invalid full name or password." };
 
+  const sessionTimeoutMinutes = await getSessionTimeoutMinutes();
+
   return {
     ok: true,
-    data: {
-      token: `local-${Date.now().toString(36)}`,
-      user: { id: user.id, name: user.name, role: user.role },
-    },
+    data: createAuthSession({ id: user.id, name: user.name, role: user.role }, sessionTimeoutMinutes),
   };
 }

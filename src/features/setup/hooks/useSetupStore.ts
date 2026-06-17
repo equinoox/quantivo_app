@@ -1,8 +1,11 @@
 import { create } from "zustand";
 
-import { completeInitialSetup, DEFAULT_CURRENCY, DEFAULT_DATE_FORMAT, DEFAULT_TIME_FORMAT, DEFAULT_TIMEZONE, getSetupStatus, resetInitialSetup, saveWorkspaceSettings } from "@/features/setup/services/setup.service";
+import type { SessionTimeoutMinutes } from "@/features/auth/services/session.service";
+import { completeInitialSetup, DEFAULT_CURRENCY, DEFAULT_DATE_FORMAT, DEFAULT_SESSION_TIMEOUT, DEFAULT_TIME_FORMAT, DEFAULT_TIMEZONE, getSetupStatus, resetInitialSetup, saveWorkspaceSettings } from "@/features/setup/services/setup.service";
 import { AppCurrency, AppDateFormat, AppLanguage, AppTimeFormat, SetupAdminInput, SetupStatus } from "@/features/setup/types/setup.types";
 import { runMigrations } from "@/shared/lib/db/migrations";
+import { AppError } from "@/shared/lib/errors/AppError";
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 import { Result } from "@/shared/types/result.types";
 
 type SetupDraft = {
@@ -14,6 +17,7 @@ type SetupDraft = {
   dateFormat: AppDateFormat;
   timeFormat: AppTimeFormat;
   currency: AppCurrency;
+  sessionTimeoutMinutes: SessionTimeoutMinutes | null;
   admins: SetupAdminInput[];
 };
 
@@ -26,6 +30,7 @@ type SetupState = {
   setTimezone: (timezone: string) => void;
   setDateFormat: (dateFormat: AppDateFormat) => void;
   setTimeFormat: (timeFormat: AppTimeFormat) => void;
+  setSessionTimeoutMinutes: (sessionTimeoutMinutes: SessionTimeoutMinutes | null) => void;
   setRestaurantName: (restaurantName: string) => void;
   setBusinessLogoUri: (businessLogoUri: string) => void;
   setBusinessBackgroundUri: (businessBackgroundUri: string) => void;
@@ -37,13 +42,9 @@ type SetupState = {
   resetSetup: () => Promise<Result<SetupStatus>>;
 };
 
-function createDraftId(): string {
-  return `draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export const useSetupStore = create<SetupState>((set, get) => ({
   status: null,
-  draft: { language: null, restaurantName: "", businessLogoUri: "", businessBackgroundUri: "", timezone: DEFAULT_TIMEZONE, dateFormat: DEFAULT_DATE_FORMAT, timeFormat: DEFAULT_TIME_FORMAT, currency: DEFAULT_CURRENCY, admins: [] },
+  draft: { language: null, restaurantName: "", businessLogoUri: "", businessBackgroundUri: "", timezone: DEFAULT_TIMEZONE, dateFormat: DEFAULT_DATE_FORMAT, timeFormat: DEFAULT_TIME_FORMAT, currency: DEFAULT_CURRENCY, sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT, admins: [] },
   isHydrated: false,
   hydrate: async () => {
     await runMigrations();
@@ -60,6 +61,7 @@ export const useSetupStore = create<SetupState>((set, get) => ({
         dateFormat: status.dateFormat,
         timeFormat: status.timeFormat,
         currency: status.currency,
+        sessionTimeoutMinutes: status.sessionTimeoutMinutes,
         admins: [],
       },
     });
@@ -68,6 +70,7 @@ export const useSetupStore = create<SetupState>((set, get) => ({
   setTimezone: (timezone) => set((state) => ({ draft: { ...state.draft, timezone } })),
   setDateFormat: (dateFormat) => set((state) => ({ draft: { ...state.draft, dateFormat } })),
   setTimeFormat: (timeFormat) => set((state) => ({ draft: { ...state.draft, timeFormat } })),
+  setSessionTimeoutMinutes: (sessionTimeoutMinutes) => set((state) => ({ draft: { ...state.draft, sessionTimeoutMinutes } })),
   setRestaurantName: (restaurantName) => set((state) => ({ draft: { ...state.draft, restaurantName } })),
   setBusinessLogoUri: (businessLogoUri) => set((state) => ({ draft: { ...state.draft, businessLogoUri } })),
   setBusinessBackgroundUri: (businessBackgroundUri) => set((state) => ({ draft: { ...state.draft, businessBackgroundUri } })),
@@ -76,7 +79,7 @@ export const useSetupStore = create<SetupState>((set, get) => ({
     set((state) => ({
       draft: {
         ...state.draft,
-        admins: [...state.draft.admins, { ...admin, id: createDraftId(), name: admin.name.trim().replace(/\s+/g, " ") }],
+        admins: [...state.draft.admins, { ...admin, id: createLocalId("draft"), name: admin.name.trim().replace(/\s+/g, " ") }],
       },
     })),
   removeAdmin: (id) =>
@@ -98,8 +101,9 @@ export const useSetupStore = create<SetupState>((set, get) => ({
         dateFormat: draft.dateFormat,
         timeFormat: draft.timeFormat,
         currency: draft.currency,
+        sessionTimeoutMinutes: draft.sessionTimeoutMinutes,
       });
-      set({ status, draft: { ...draft, language: status.language, restaurantName: status.restaurantName ?? "", businessLogoUri: status.businessLogoUri ?? "", businessBackgroundUri: status.businessBackgroundUri ?? "", timezone: status.timezone, dateFormat: status.dateFormat, timeFormat: status.timeFormat, currency: status.currency } });
+      set({ status, draft: { ...draft, language: status.language, restaurantName: status.restaurantName ?? "", businessLogoUri: status.businessLogoUri ?? "", businessBackgroundUri: status.businessBackgroundUri ?? "", timezone: status.timezone, dateFormat: status.dateFormat, timeFormat: status.timeFormat, currency: status.currency, sessionTimeoutMinutes: status.sessionTimeoutMinutes } });
       return { ok: true, data: status };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : "Settings save failed." };
@@ -121,18 +125,20 @@ export const useSetupStore = create<SetupState>((set, get) => ({
         dateFormat: draft.dateFormat,
         timeFormat: draft.timeFormat,
         currency: draft.currency,
+        sessionTimeoutMinutes: draft.sessionTimeoutMinutes,
         admins: draft.admins,
       });
-      set({ status, draft: { language: status.language, restaurantName: status.restaurantName ?? "", businessLogoUri: status.businessLogoUri ?? "", businessBackgroundUri: status.businessBackgroundUri ?? "", timezone: status.timezone, dateFormat: status.dateFormat, timeFormat: status.timeFormat, currency: status.currency, admins: [] } });
+      set({ status, draft: { language: status.language, restaurantName: status.restaurantName ?? "", businessLogoUri: status.businessLogoUri ?? "", businessBackgroundUri: status.businessBackgroundUri ?? "", timezone: status.timezone, dateFormat: status.dateFormat, timeFormat: status.timeFormat, currency: status.currency, sessionTimeoutMinutes: status.sessionTimeoutMinutes, admins: [] } });
       return { ok: true, data: status };
     } catch (error) {
+      if (error instanceof AppError) return { ok: false, error: error.code };
       return { ok: false, error: error instanceof Error ? error.message : "Setup failed." };
     }
   },
   resetSetup: async () => {
     try {
       const status = await resetInitialSetup();
-      set({ status, draft: { language: null, restaurantName: "", businessLogoUri: "", businessBackgroundUri: "", timezone: DEFAULT_TIMEZONE, dateFormat: DEFAULT_DATE_FORMAT, timeFormat: DEFAULT_TIME_FORMAT, currency: DEFAULT_CURRENCY, admins: [] } });
+      set({ status, draft: { language: null, restaurantName: "", businessLogoUri: "", businessBackgroundUri: "", timezone: DEFAULT_TIMEZONE, dateFormat: DEFAULT_DATE_FORMAT, timeFormat: DEFAULT_TIME_FORMAT, currency: DEFAULT_CURRENCY, sessionTimeoutMinutes: DEFAULT_SESSION_TIMEOUT, admins: [] } });
       return { ok: true, data: status };
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : "Reset failed." };

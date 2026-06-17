@@ -3,10 +3,7 @@ import { asc, eq, isNull } from "drizzle-orm";
 import { CreateFinancialItemInput, FinancialItem } from "@/features/revenues-expenses/types/financial-item.types";
 import { db } from "@/shared/lib/db/client";
 import { financialItems } from "@/shared/lib/db/schema";
-
-function createFinancialItemId(): string {
-  return `fin_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
+import { createLocalId } from "@/shared/lib/id/createLocalId";
 
 export async function listFinancialItems(): Promise<FinancialItem[]> {
   return db.select().from(financialItems).where(isNull(financialItems.deletedAt)).orderBy(asc(financialItems.type), asc(financialItems.name));
@@ -16,7 +13,7 @@ export async function createFinancialItem(input: CreateFinancialItemInput): Prom
   // TODO: Add amount/value input later.
   // TODO: Connect expenses and revenues with dashboard calculations later.
   const now = new Date().toISOString();
-  const id = createFinancialItemId();
+  const id = createLocalId("fin");
   await db.insert(financialItems).values({
     behavior: input.behavior,
     createdAt: now,
