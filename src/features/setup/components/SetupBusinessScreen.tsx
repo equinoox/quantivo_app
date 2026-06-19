@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { ImageIcon } from "lucide-react-native";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
+import { SetupFooterActions } from "@/features/setup/components/SetupFooterActions";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
 import { AppCurrency } from "@/features/setup/types/setup.types";
 import { restaurantSetupSchema } from "@/features/setup/validation/setup.schemas";
@@ -68,12 +69,7 @@ export function SetupBusinessScreen() {
       stepNumber={2}
       title={t("businessTitle")}
       subtitle={t("businessSubtitle")}
-      footer={
-        <>
-          <AppButton label={t("continue")} onPress={handleNext} className="bg-secondary_dark" />
-          <AppButton label={t("back")} variant="secondary" onPress={() => router.back()} />
-        </>
-      }
+      footer={<SetupFooterActions backLabel={t("back")} continueLabel={t("continue")} onBack={() => router.back()} onContinue={handleNext} />}
     >
       <AppInput label={t("restaurantName")} value={restaurantName} onChangeText={setRestaurantName} autoCapitalize="words" />
       <AppCard className="border-primary">

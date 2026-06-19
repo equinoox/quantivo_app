@@ -70,7 +70,11 @@ function isValidIsoDate(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0 && Number.isFinite(Date.parse(value));
 }
 
-export function isValidAuthSession(value: unknown): value is AuthSession {
+export function isAuthSessionExpired(session: AuthSession): boolean {
+  return Date.parse(session.expiresAt) <= Date.now();
+}
+
+export function isValidAuthSession(value: unknown, options?: { allowExpired?: boolean }): value is AuthSession {
   if (!value || typeof value !== "object") return false;
   const session = value as Partial<AuthSession>;
   const user = session.user as Partial<AuthUser> | undefined;
@@ -80,7 +84,7 @@ export function isValidAuthSession(value: unknown): value is AuthSession {
   if (session.lastActivityAt !== undefined && !isValidIsoDate(session.lastActivityAt)) return false;
   if (!user || typeof user.id !== "string" || typeof user.name !== "string") return false;
   if (!roles.includes(user.role as AuthUser["role"])) return false;
-  if (Date.parse(session.expiresAt) <= Date.now()) return false;
+  if (!options?.allowExpired && isAuthSessionExpired(session as AuthSession)) return false;
 
   return true;
 }

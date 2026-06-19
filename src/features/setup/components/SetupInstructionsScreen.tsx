@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import { Text, View, ViewStyle } from "react-native";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
-import { AppButton } from "@/shared/components/ui/AppButton";
+import { SetupFooterActions } from "@/features/setup/components/SetupFooterActions";
 import { colors } from "@/shared/constants/colors";
 import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 import { useI18n } from "@/shared/i18n/useI18n";
@@ -38,12 +38,7 @@ export function SetupInstructionsScreen() {
       stepNumber={4}
       title={t("instructionsTitle")}
       subtitle={t("instructionsSubtitle")}
-      footer={
-        <>
-          <AppButton label={t("continue")} onPress={() => router.push("/(setup)/integrations")} className="bg-secondary_dark" />
-          <AppButton label={t("back")} variant="secondary" onPress={() => router.back()} />
-        </>
-      }
+      footer={<SetupFooterActions backLabel={t("back")} continueLabel={t("continue")} onBack={() => router.back()} onContinue={() => router.push("/(setup)/integrations")} />}
     >
       <View className="flex-row flex-wrap gap-3">
         {cards.map((card) => <InstructionCard key={card.title} icon={card.icon} style={cardStyle} title={card.title} />)}

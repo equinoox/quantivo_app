@@ -40,6 +40,21 @@ export const financialItems = sqliteTable("financial_items", {
   deletedAt: text("deleted_at"),
 });
 
+export const customFinancialEntries = sqliteTable("custom_financial_entries", {
+  id: text("id").primaryKey(),
+  type: text("type", { enum: ["expense", "revenue"] }).notNull(),
+  behavior: text("behavior", { enum: ["fixed", "variable"] }).notNull().default("variable"),
+  name: text("name").notNull(),
+  amount: real("amount").notNull().default(0),
+  date: text("date").notNull(),
+  dateKey: text("date_key").notNull(),
+  explanation: text("explanation").notNull().default(""),
+  createdByUserId: text("created_by_user_id").references(() => users.id),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  deletedAt: text("deleted_at"),
+});
+
 export const categories = sqliteTable("categories", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

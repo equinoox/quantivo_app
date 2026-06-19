@@ -44,6 +44,7 @@ function AppNavigator() {
         <Stack.Screen name="protected/attributes" options={{ orientation: "portrait" }} />
         <Stack.Screen name="protected/categories" options={{ orientation: "portrait" }} />
         <Stack.Screen name="protected/dev-database" options={{ orientation: "portrait" }} />
+        <Stack.Screen name="protected/new-inventory-products" options={{ orientation: "landscape" }} />
         <Stack.Screen name="protected/revenues-expenses" options={{ orientation: "portrait" }} />
         <Stack.Screen name="protected/units" options={{ orientation: "portrait" }} />
         <Stack.Screen name="protected/workers-management" options={{ orientation: "portrait" }} />

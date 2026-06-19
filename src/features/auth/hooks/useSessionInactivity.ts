@@ -19,7 +19,7 @@ export function useSessionInactivity() {
   const lastActivityAtRef = useRef(Date.now());
   const lastPersistedActivityAtRef = useRef(0);
   const isExpiringRef = useRef(false);
-  const sessionTimeoutMinutes = setupStatus?.sessionTimeoutMinutes ?? DEFAULT_SESSION_TIMEOUT_MINUTES;
+  const sessionTimeoutMinutes = setupStatus ? setupStatus.sessionTimeoutMinutes : DEFAULT_SESSION_TIMEOUT_MINUTES;
   const sessionTimeoutMs = getSessionDurationMs(sessionTimeoutMinutes);
 
   const markActivity = useCallback(() => {

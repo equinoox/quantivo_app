@@ -1,5 +1,5 @@
-import { ReportsTab } from "@/features/reports/components/ReportsTab";
+import { FinancesTab } from "@/features/finances/components/FinancesTab";
 
 export default function ReportsRoute() {
-  return <ReportsTab />;
+  return <FinancesTab />;
 }

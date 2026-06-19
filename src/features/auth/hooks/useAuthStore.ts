@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { loginLocal } from "@/features/auth/services/local-auth.service";
-import { isValidAuthSession, refreshAuthSessionActivity, type SessionTimeoutMinutes } from "@/features/auth/services/session.service";
+import { getSessionTimeoutMinutes, isAuthSessionExpired, isValidAuthSession, refreshAuthSessionActivity, type SessionTimeoutMinutes } from "@/features/auth/services/session.service";
 import { AuthSession } from "@/features/auth/types/auth.types";
 import { LoginInput } from "@/features/auth/validation/auth.schemas";
 import { deleteSecureItem, getSecureJson, setSecureJson } from "@/shared/lib/storage/secure-storage";
@@ -28,9 +28,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
 
-    if (!isValidAuthSession(session)) {
+    const sessionTimeoutMinutes = await getSessionTimeoutMinutes();
+    if (!isValidAuthSession(session, { allowExpired: sessionTimeoutMinutes === null })) {
       await deleteSecureItem(AUTH_SESSION_KEY);
       set({ session: null, isHydrated: true });
+      return;
+    }
+
+    if (sessionTimeoutMinutes === null && isAuthSessionExpired(session)) {
+      const refreshedSession = refreshAuthSessionActivity(session, null);
+      await setSecureJson(AUTH_SESSION_KEY, refreshedSession);
+      set({ session: refreshedSession, isHydrated: true });
       return;
     }
 

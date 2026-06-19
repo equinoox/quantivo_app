@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Check, ChevronDown, ChevronRight, CircleUserRound, Database, FolderTree, ImageIcon, LogOut, ReceiptText, Ruler, Settings, Tags, Trash2, UsersRound, Wrench } from "lucide-react-native";
+import { Check, ChevronDown, ChevronRight, CircleUserRound, Database, FolderTree, ImageIcon, LogOut, Ruler, Settings, Tags, Trash2, UsersRound, Wrench } from "lucide-react-native";
 import { ReactNode, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import clsx from "clsx";
@@ -166,7 +166,6 @@ export function SettingsTab() {
           <>
             <SectionDivider />
             <SettingsRow icon={<UsersRound color={colors.secondaryDark} size={20} />} label={t("manageWorkers")} onPress={() => router.push(routes.workersManagement)} />
-            <SettingsRow icon={<ReceiptText color={colors.secondaryDark} size={20} />} label={t("manageRevenuesExpenses")} onPress={() => router.push(routes.revenuesExpenses)} />
             <SettingsRow description={t("workspaceSetupDescription")} icon={<Wrench color={colors.secondaryDark} size={20} />} isExpanded={isWorkspaceSetupExpanded} label={t("workspaceSetup")} onPress={() => setIsWorkspaceSetupExpanded((current) => !current)} />
             {isWorkspaceSetupExpanded ? (
               <View className="gap-4 rounded-md border border-primary bg-background p-3">

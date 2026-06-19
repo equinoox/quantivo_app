@@ -1,6 +1,6 @@
 import { sqlite } from "@/shared/lib/db/client";
 
-export const LATEST_SCHEMA_VERSION = 1;
+export const LATEST_SCHEMA_VERSION = 3;
 
 const SCHEMA_VERSION_KEY = "schema_version";
 
@@ -48,6 +48,7 @@ export async function resetDatabase(): Promise<void> {
     DROP TABLE IF EXISTS attributes;
     DROP TABLE IF EXISTS units;
     DROP TABLE IF EXISTS categories;
+    DROP TABLE IF EXISTS custom_financial_entries;
     DROP TABLE IF EXISTS financial_items;
     DROP TABLE IF EXISTS workers;
     DROP TABLE IF EXISTS users;
@@ -98,6 +99,21 @@ async function runBaselineSchemaMigration(): Promise<void> {
       behavior TEXT NOT NULL,
       name TEXT NOT NULL,
       requires_explanation INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS custom_financial_entries (
+      id TEXT PRIMARY KEY NOT NULL,
+      type TEXT NOT NULL,
+      behavior TEXT NOT NULL DEFAULT 'variable',
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      date TEXT NOT NULL,
+      date_key TEXT NOT NULL,
+      explanation TEXT NOT NULL DEFAULT '',
+      created_by_user_id TEXT REFERENCES users(id),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       deleted_at TEXT
@@ -295,12 +311,40 @@ async function runBaselineSchemaMigration(): Promise<void> {
   }
 }
 
+async function runCustomFinancialEntriesMigration(): Promise<void> {
+  await sqlite.execAsync(`
+    CREATE TABLE IF NOT EXISTS custom_financial_entries (
+      id TEXT PRIMARY KEY NOT NULL,
+      type TEXT NOT NULL,
+      behavior TEXT NOT NULL DEFAULT 'variable',
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      date TEXT NOT NULL,
+      date_key TEXT NOT NULL,
+      explanation TEXT NOT NULL DEFAULT '',
+      created_by_user_id TEXT REFERENCES users(id),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+  `);
+}
+
+async function runCustomFinancialEntryBehaviorMigration(): Promise<void> {
+  const customEntryColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(custom_financial_entries)");
+  if (!customEntryColumns.some((column) => column.name === "behavior")) {
+    await sqlite.execAsync("ALTER TABLE custom_financial_entries ADD COLUMN behavior TEXT NOT NULL DEFAULT 'variable';");
+  }
+}
+
 export async function runVersionedMigrations(): Promise<void> {
   await sqlite.execAsync("PRAGMA foreign_keys = ON;");
 
   const currentVersion = await getCurrentSchemaVersion();
   if (currentVersion < LATEST_SCHEMA_VERSION) {
     await runBaselineSchemaMigration();
+    if (currentVersion < 2) await runCustomFinancialEntriesMigration();
+    if (currentVersion < 3) await runCustomFinancialEntryBehaviorMigration();
     await setCurrentSchemaVersion(LATEST_SCHEMA_VERSION);
   }
 }

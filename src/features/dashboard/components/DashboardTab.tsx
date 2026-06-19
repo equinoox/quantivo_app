@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
-import { Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { router, useFocusEffect } from "expo-router";
 import clsx from "clsx";
-import { AlertTriangle, CircleDollarSign, ImageIcon, ListPlus, Minus, Plus } from "lucide-react-native";
+import { AlertTriangle, CircleDollarSign, ClipboardList, Clock, ListPlus, Minus, Package, Pencil, Plus } from "lucide-react-native";
 
 import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
+import { NewInventoryProductTable } from "@/features/inventory/components/NewInventoryProductTable";
+import { useNewInventoryDraftStore } from "@/features/inventory/hooks/useNewInventoryDraftStore";
 import { finishInventoryList, INVENTORY_LIST_DUPLICATE_ERROR } from "@/features/inventory/services/inventory.service";
 import { FinishInventoryListFinancialEntryInput, FinishInventoryListProductInput } from "@/features/inventory/types/inventory.types";
-import { createInventoryFieldChangeNotification, createShiftFinishedNotification } from "@/features/notifications/services/notifications.service";
+import { createShiftFinishedNotification } from "@/features/notifications/services/notifications.service";
 import { listProducts } from "@/features/products/services/products.service";
 import { Product } from "@/features/products/types/product.types";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
@@ -22,6 +24,7 @@ import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { LoadingState } from "@/shared/components/ui/LoadingState";
 import { Screen } from "@/shared/components/ui/Screen";
 import { colors } from "@/shared/constants/colors";
+import { routes } from "@/shared/constants/routes";
 import { useAppToast } from "@/shared/hooks/useAppToast";
 import { createLocalId } from "@/shared/lib/id/createLocalId";
 import { useAppFormatters } from "@/features/setup/hooks/useAppFormatters";
@@ -30,8 +33,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 type InventoryGrouping = "category" | "unit";
 type InventoryShift = "first" | "second";
 type EditableProductField = "entered" | "quantity" | "end";
-type ProductInventoryState = Record<string, Record<EditableProductField, string>>;
-type ProductCellTarget = { productId: string; field: EditableProductField } | null;
 type InventoryFinancialEntry = {
   amount: string;
   amountExpression: string;
@@ -44,19 +45,6 @@ type InventoryFinancialEntry = {
   type: FinancialItem["type"];
 };
 type CalculatorTarget = { entryId: string; expression: string } | null;
-
-const tableColumns = [
-  { key: "picture", width: 76 },
-  { key: "name", width: 150 },
-  { key: "quantity", width: 88 },
-  { key: "entered", width: 82 },
-  { key: "end", width: 70 },
-  { key: "sold", width: 70 },
-  { key: "price", width: 112 },
-  { key: "totalEarnings", width: 164 },
-] as const;
-
-const tableWidth = tableColumns.reduce((total, column) => total + column.width, 0);
 
 function SortChip({ isSelected, label, onPress }: { isSelected: boolean; label: string; onPress: () => void }) {
   return (
@@ -77,10 +65,6 @@ function evaluatePlusExpression(expression: string): number | null {
 
 function sanitizeCalculatorExpression(expression: string): string {
   return expression.replace(/[^\d+\-.,]/g, "");
-}
-
-function sanitizeInventoryExpression(value: string): string {
-  return value.replace(/,/g, ".").replace(/[^\d.+-]/g, "");
 }
 
 function parseNonNegativeNumber(value: string): number | null {
@@ -144,11 +128,13 @@ export function DashboardTab() {
   const session = useAuthStore((state) => state.session);
   const dateFormat = useSetupStore((state) => state.status?.dateFormat ?? "dd/MM/yyyy");
   const { formatDate, formatMoney } = useAppFormatters();
-  const [products, setProducts] = useState<Product[]>([]);
+  const grouping = useNewInventoryDraftStore((state) => state.grouping);
+  const productInventoryInputs = useNewInventoryDraftStore((state) => state.productInventoryInputs);
+  const products = useNewInventoryDraftStore((state) => state.products);
+  const resetProductInventoryInputs = useNewInventoryDraftStore((state) => state.resetProductInventoryInputs);
+  const setGrouping = useNewInventoryDraftStore((state) => state.setGrouping);
+  const setProducts = useNewInventoryDraftStore((state) => state.setProducts);
   const [financialItems, setFinancialItems] = useState<FinancialItem[]>([]);
-  const [productInventoryInputs, setProductInventoryInputs] = useState<ProductInventoryState>({});
-  const [productCellTarget, setProductCellTarget] = useState<ProductCellTarget>(null);
-  const [productCellDraft, setProductCellDraft] = useState("");
   const [financialEntries, setFinancialEntries] = useState<InventoryFinancialEntry[]>([]);
   const [selectedFinancialItemId, setSelectedFinancialItemId] = useState("");
   const [calculatorTarget, setCalculatorTarget] = useState<CalculatorTarget>(null);
@@ -156,7 +142,6 @@ export function DashboardTab() {
   const [isFinishConfirmVisible, setIsFinishConfirmVisible] = useState(false);
   const [inventoryDate, setInventoryDate] = useState(() => formatDate(new Date()));
   const [shift, setShift] = useState<InventoryShift | null>(null);
-  const [grouping, setGrouping] = useState<InventoryGrouping>("unit");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -168,15 +153,8 @@ export function DashboardTab() {
     try {
       setIsLoading(true);
       const [productRows, financialRows] = await Promise.all([listProducts(), listFinancialItems()]);
-      setProducts(productRows);
       setFinancialItems(financialRows);
-      setProductInventoryInputs((current) => {
-        const next = { ...current };
-        for (const product of productRows) {
-          if (!next[product.id]) next[product.id] = getInitialProductInventoryValues(product);
-        }
-        return next;
-      });
+      setProducts(productRows);
     } catch (error) {
       toast.error(t("productsLoadFailed"), error instanceof Error ? error.message : undefined);
     } finally {
@@ -267,70 +245,6 @@ export function DashboardTab() {
     return canEditProductField(field);
   };
 
-  const openProductCellModal = (productId: string, field: EditableProductField) => {
-    const product = products.find((item) => item.id === productId);
-    if (!product) return;
-    if (!canEditProductFieldForProduct(product, field)) return;
-    setProductCellTarget({ field, productId });
-    setProductCellDraft(getProductInventoryValue(product, field));
-  };
-
-  const closeProductCellModal = () => {
-    setProductCellTarget(null);
-    setProductCellDraft("");
-  };
-
-  const handleProductCellSave = () => {
-    if (!productCellTarget) return;
-    const product = products.find((item) => item.id === productCellTarget.productId);
-    if (!product) return;
-    const fallbackValue = Number(getProductInventoryValue(product, productCellTarget.field));
-    const parsedValue = parseInventoryFieldValue(productCellDraft, Number.isFinite(fallbackValue) ? fallbackValue : 0);
-    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
-      toast.error(t("inventoryValueInvalid"));
-      return;
-    }
-    if (product.isCounterProduct && productCellTarget.field === "end") {
-      const startValue = parseInventoryFieldValue(getProductInventoryValue(product, "quantity"), product.quantityOnHand);
-      if (parsedValue < startValue) {
-        toast.error(t("counterProductEndInvalid"));
-        return;
-      }
-    }
-    if (product.isCounterProduct && productCellTarget.field === "quantity") {
-      const endValue = parseInventoryFieldValue(getProductInventoryValue(product, "end"), product.quantityOnHand);
-      if (endValue < parsedValue) {
-        toast.error(t("counterProductEndInvalid"));
-        return;
-      }
-    }
-
-    const savedValue = productCellDraft.trim() ? productCellDraft.trim() : parsedValue.toString();
-    const oldValue = parseInventoryFieldValue(getProductInventoryValue(product, productCellTarget.field), Number.isFinite(fallbackValue) ? fallbackValue : 0);
-    setProductInventoryInputs((current) => ({
-      ...current,
-      [productCellTarget.productId]: {
-        entered: current[productCellTarget.productId]?.entered ?? "0",
-        end: current[productCellTarget.productId]?.end ?? "0",
-        quantity: current[productCellTarget.productId]?.quantity ?? "0",
-        [productCellTarget.field]: savedValue,
-      },
-    }));
-    if (shouldLogInventoryAction && (productCellTarget.field === "quantity" || productCellTarget.field === "entered") && Number.isFinite(oldValue) && oldValue !== parsedValue && session?.user.id) {
-      void createInventoryFieldChangeNotification({
-        actorNameSnapshot: session.user.name,
-        actorUserId: session.user.id,
-        columnKey: productCellTarget.field,
-        columnLabelSnapshot: productCellTarget.field === "quantity" ? t("quantity") : t("entered"),
-        newValue: parsedValue,
-        oldValue,
-        productId: product.id,
-        productNameSnapshot: product.name,
-      }).catch((error) => toast.error(t("notificationSaveFailed"), error instanceof Error ? error.message : undefined));
-    }
-    closeProductCellModal();
-  };
-
   const addFinancialEntry = () => {
     if (!selectedFinancialItem) return;
     setFinancialEntries((current) => [
@@ -388,14 +302,6 @@ export function DashboardTab() {
   };
 
   const closeCalculator = () => setCalculatorTarget(null);
-
-  const appendProductCellPlus = () => {
-    setProductCellDraft((current) => `${current}+`);
-  };
-
-  const appendProductCellMinus = () => {
-    setProductCellDraft((current) => `${current}-`);
-  };
 
   const appendCalculatorPlus = () => {
     setCalculatorTarget((current) => current ? { ...current, expression: `${current.expression}+` } : current);
@@ -505,14 +411,6 @@ export function DashboardTab() {
     setIsFinishConfirmVisible(true);
   };
 
-  const resetProductInventoryInputs = (productRows: Product[]) => {
-    const nextInputs: ProductInventoryState = {};
-    for (const product of productRows) {
-      nextInputs[product.id] = getInitialProductInventoryValues(product);
-    }
-    setProductInventoryInputs(nextInputs);
-  };
-
   const handleFinishInventoryManagement = async () => {
     if (isSaving) return;
     setIsFinishConfirmVisible(false);
@@ -583,13 +481,6 @@ export function DashboardTab() {
   return (
     <Screen tabPage icon={<ListPlus color={colors.secondaryDark} size={36} />} title={t("dashboard")} subtitle={t("dashboardSubtitle")} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshDashboard} tintColor={colors.orange} />}>
       <View className="gap-4">
-        <View className="items-center">
-          <View className="flex-row flex-wrap justify-center gap-2">
-            <SortChip isSelected={grouping === "unit"} label={t("sortByUnit")} onPress={() => setGrouping("unit")} />
-            <SortChip isSelected={grouping === "category"} label={t("sortByCategory")} onPress={() => setGrouping("category")} />
-          </View>
-        </View>
-
         {isLoading ? <LoadingState label={t("loadingProducts")} /> : null}
 
         {!isLoading && hasLowStockProducts ? (
@@ -605,197 +496,140 @@ export function DashboardTab() {
           </AppCard>
         ) : null}
 
-        {!isLoading && products.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator>
-            <AppCard className="gap-0 overflow-hidden border-secondary_dark p-0" style={{ width: tableWidth + 2 }}>
-              <View className="flex-row bg-secondary_dark">
-                <View style={{ width: tableColumns[0].width }} className="items-center justify-center px-2 py-3">
-                  <Text numberOfLines={2} className="w-full text-center text-xs font-semibold uppercase text-text_color_2">{t("picture")}</Text>
-                </View>
-                {tableColumns.slice(1).map((column) => (
-                  <View key={column.key} style={{ width: column.width }} className={clsx("justify-center px-2 py-3", column.key === "name" ? "items-start" : "items-center")}>
-                    <Text numberOfLines={2} className={clsx("w-full text-xs font-semibold uppercase text-text_color_2", column.key === "name" ? "text-left" : "text-center")}>{t(column.key)}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {groupedProducts.map((group, groupIndex) => (
-                <View key={group.groupName}>
-                  <View className="bg-primary/70 px-3 py-2">
-                    <Text className="text-base font-semibold text-secondary_dark">{group.groupName}</Text>
-                  </View>
-                  {group.products.map((product, productIndex) => {
-                    const isLastRow = groupIndex === groupedProducts.length - 1 && productIndex === group.products.length - 1;
-                    const enteredToday = parseInventoryFieldValue(getProductInventoryValue(product, "entered"), 0);
-                    const currentQuantity = parseInventoryFieldValue(getProductInventoryValue(product, "quantity"), product.quantityOnHand);
-                    const endQuantity = parseInventoryFieldValue(getProductInventoryValue(product, "end"), product.quantityOnHand);
-                    const soldToday = product.isCounterProduct ? endQuantity - currentQuantity : currentQuantity + enteredToday - endQuantity;
-                    const totalEarnings = product.price * soldToday;
-                    const isLowQuantity = !product.isCounterProduct && endQuantity < product.minimumQuantityAlert;
-
-                    return (
-                      <View key={product.id} className={clsx("flex-row items-center bg-white", !isLastRow && "border-b border-primary")}>
-                        <View style={{ width: tableColumns[0].width }} className="items-center px-2 py-3">
-                          <View className="relative h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-secondary_dark bg-primary">
-                            {product.imageUrl ? <Image source={{ uri: product.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={22} />}
-                            {isLowQuantity ? (
-                              <View pointerEvents="none" style={styles.lowStockImageOverlay} className="items-center justify-center bg-red-700/35">
-                                <View className="rounded-full bg-white/80 p-1">
-                                  <AlertTriangle color="#dc2626" size={18} />
-                                </View>
-                              </View>
-                            ) : null}
-                          </View>
-                        </View>
-                        <View style={{ width: tableColumns[1].width }} className="justify-center px-2 py-3">
-                          <View className="flex-row items-center gap-1">
-                            <Text className="flex-shrink text-base font-semibold text-secondary_dark">{product.name}</Text>
-                            {product.isCounterProduct ? <Text className="rounded bg-orange px-1.5 py-0.5 text-xs font-bold text-black">B</Text> : null}
-                          </View>
-                        </View>
-                        <View style={{ width: tableColumns[2].width }} className="justify-center px-2 py-3">
-                          <Pressable disabled={!canEditProductFieldForProduct(product, "quantity")} onPress={() => openProductCellModal(product.id, "quantity")} className="min-h-10 justify-center rounded-md border border-primary bg-background px-2">
-                            <Text className="text-center text-base text-secondary">{currentQuantity}</Text>
-                          </Pressable>
-                        </View>
-                        <View style={{ width: tableColumns[3].width }} className="justify-center px-2 py-3">
-                          <Pressable disabled={!canEditProductFieldForProduct(product, "entered")} onPress={() => openProductCellModal(product.id, "entered")} className="min-h-10 justify-center rounded-md border border-primary bg-background px-2">
-                            <Text className="text-center text-base text-secondary">{product.isCounterProduct ? t("notAvailable") : enteredToday}</Text>
-                          </Pressable>
-                        </View>
-                        <View style={{ width: tableColumns[4].width }} className="justify-center px-2 py-3">
-                          <Pressable disabled={!canEditProductFieldForProduct(product, "end")} onPress={() => openProductCellModal(product.id, "end")} className="min-h-10 justify-center rounded-md border border-primary bg-background px-2">
-                            <Text className={clsx("text-center text-base font-semibold", isLowQuantity ? "text-red-700" : "text-secondary")}>{endQuantity}</Text>
-                          </Pressable>
-                        </View>
-                        <View style={{ width: tableColumns[5].width }} className="justify-center px-2 py-3">
-                          <Text className="text-center text-base text-secondary">{soldToday}</Text>
-                        </View>
-                        <View style={{ width: tableColumns[6].width }} className="justify-center px-2 py-3">
-                          <Text className="text-center text-base text-secondary">{formatMoney(product.price)}</Text>
-                        </View>
-                        <View style={{ width: tableColumns[7].width }} className="justify-center px-2 py-3">
-                          <Text numberOfLines={1} className="text-center text-base font-semibold text-secondary_dark">{formatMoney(totalEarnings)}</Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
-            </AppCard>
-          </ScrollView>
-        ) : null}
-
-        {!isLoading && financialItems.length > 0 ? (
-          <AppCard className="border-primary">
-            <View className="flex-row items-center gap-2">
-              <CircleDollarSign color={colors.secondaryDark} size={22} />
-              <Text className="text-lg font-semibold text-secondary_dark">{t("revenuesExpensesManagement")}</Text>
-            </View>
-            <View className="gap-3">
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View className="flex-row gap-2">
-                  {financialItems.map((item) => (
-                    <Pressable key={item.id} onPress={() => setSelectedFinancialItemId(item.id)} className={clsx("min-h-12 justify-center rounded-md border bg-white px-3", selectedFinancialItemId === item.id ? "border-orange" : "border-primary")}>
-                      <Text className="font-semibold text-secondary_dark">{item.name}</Text>
+        {!isLoading ? (
+          <AppCard className="border-secondary_dark bg-white">
+            <View className="gap-5">
+              {products.length > 0 ? (
+                <View className="gap-3">
+                  <View className="flex-row flex-wrap items-center justify-between gap-3">
+                    <View className="flex-row items-center gap-2">
+                      <Package color={colors.secondaryDark} size={22} />
+                      <Text className="text-lg font-semibold text-secondary_dark">{t("products")}</Text>
+                    </View>
+                    <Pressable accessibilityRole="button" onPress={() => router.push(routes.newInventoryProducts)} className="min-h-10 flex-row items-center justify-center gap-2 rounded-md border border-primary bg-white px-3">
+                      <Pencil color={colors.secondaryDark} size={16} />
+                      <Text className="font-semibold text-secondary_dark">{t("editProductStock")}</Text>
                     </Pressable>
-                  ))}
+                  </View>
+                  <View className="flex-row flex-wrap gap-2">
+                    <SortChip isSelected={grouping === "unit"} label={t("sortByUnit")} onPress={() => setGrouping("unit")} />
+                    <SortChip isSelected={grouping === "category"} label={t("sortByCategory")} onPress={() => setGrouping("category")} />
+                  </View>
+                  <NewInventoryProductTable
+                    canEditProductFieldForProduct={canEditProductFieldForProduct}
+                    formatMoney={formatMoney}
+                    getProductInventoryValue={getProductInventoryValue}
+                    groupedProducts={groupedProducts}
+                    isReadOnly
+                    onOpenCell={() => router.push(routes.newInventoryProducts)}
+                    t={t}
+                    withReveal={false}
+                  />
                 </View>
-              </ScrollView>
-              <View className="flex-row gap-2">
-                <View className="flex-1">
-                  <AppButton label={t("add")} disabled={!selectedFinancialItem} onPress={addFinancialEntry} className="bg-secondary_dark" />
-                </View>
-                <View className="flex-1">
-                  <AppButton label={t("addAll")} onPress={() => setIsAddAllConfirmVisible(true)} className="bg-orange" />
-                </View>
-              </View>
-            </View>
-            <View className="gap-3">
-              {financialEntries.length === 0 ? <Text className="text-sm text-muted">{t("inventoryFinancialEntriesEmpty")}</Text> : null}
-              {financialEntries.map((item) => {
-                const iconColor = item.type === "revenue" ? "#16a34a" : "#dc2626";
-                return (
-                  <View key={item.id} className="gap-2 rounded-md border border-primary bg-white p-3">
-                    <View className="flex-row items-start justify-between gap-3">
-                      <View className="flex-1">
-                        <View className="flex-row items-center gap-2">
-                          <Text className="text-base font-semibold text-secondary_dark">{item.name}</Text>
-                          <CircleDollarSign color={iconColor} size={18} />
-                        </View>
+              ) : null}
+
+              {financialItems.length > 0 ? (
+                <View className="gap-4 border-t border-primary pt-4">
+                  <View className="flex-row items-center gap-2">
+                    <CircleDollarSign color={colors.secondaryDark} size={22} />
+                    <Text className="text-lg font-semibold text-secondary_dark">{t("revenuesExpensesManagement")}</Text>
+                  </View>
+                  <View className="gap-3">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View className="flex-row gap-2">
+                        {financialItems.map((item) => (
+                          <Pressable key={item.id} onPress={() => setSelectedFinancialItemId(item.id)} className={clsx("min-h-12 justify-center rounded-md border bg-white px-3", selectedFinancialItemId === item.id ? "border-orange" : "border-primary")}>
+                            <Text className="font-semibold text-secondary_dark">{item.name}</Text>
+                          </Pressable>
+                        ))}
                       </View>
-                      <Pressable onPress={() => openCalculator(item.id)} className="min-h-11 min-w-28 justify-center rounded-md border border-primary bg-background px-3">
-                        <Text className="text-center text-base font-semibold text-secondary_dark">{item.amount || "0"}</Text>
+                    </ScrollView>
+                    <View className="flex-row gap-2">
+                      <View className="flex-1">
+                        <AppButton label={t("add")} disabled={!selectedFinancialItem} onPress={addFinancialEntry} className="bg-secondary_dark" />
+                      </View>
+                      <View className="flex-1">
+                        <AppButton label={t("addAll")} onPress={() => setIsAddAllConfirmVisible(true)} className="bg-orange" />
+                      </View>
+                    </View>
+                  </View>
+                  <View className="gap-3">
+                    {financialEntries.length === 0 ? <Text className="text-sm text-muted">{t("inventoryFinancialEntriesEmpty")}</Text> : null}
+                    {financialEntries.map((item) => {
+                      const iconColor = item.type === "revenue" ? "#16a34a" : "#dc2626";
+                      return (
+                        <View key={item.id} className="gap-2 rounded-md border border-primary bg-white p-3">
+                          <View className="flex-row items-start justify-between gap-3">
+                            <View className="flex-1">
+                              <View className="flex-row items-center gap-2">
+                                <Text className="text-base font-semibold text-secondary_dark">{item.name}</Text>
+                                <CircleDollarSign color={iconColor} size={18} />
+                              </View>
+                            </View>
+                            <Pressable onPress={() => openCalculator(item.id)} className="min-h-11 min-w-28 justify-center rounded-md border border-primary bg-background px-3">
+                              <Text className="text-center text-base font-semibold text-secondary_dark">{item.amount || "0"}</Text>
+                            </Pressable>
+                            <Pressable onPress={() => removeFinancialEntry(item.id)} className="h-11 w-11 items-center justify-center rounded-md bg-red-600">
+                              <Text className="font-semibold text-white">X</Text>
+                            </Pressable>
+                          </View>
+                          {item.requiresExplanation ? <AppInput label={`${item.name} ${t("explanation")}`} value={item.explanation} onChangeText={(value) => updateFinancialExplanation(item.id, value)} /> : null}
+                        </View>
+                      );
+                    })}
+                  </View>
+                  <View className="gap-2">
+                    <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(financialTotals.revenues)}</Text>
+                    <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(financialTotals.expenses)}</Text>
+                  </View>
+                </View>
+              ) : null}
+
+              <View className="gap-3 border-t border-primary pt-4">
+                <View className="flex-row items-center gap-2">
+                  <Clock color={colors.secondaryDark} size={22} />
+                  <Text className="text-lg font-semibold text-secondary_dark">{t("inventoryTiming")}</Text>
+                </View>
+                <View className="flex-row flex-wrap items-end gap-2">
+                  <View className="flex-none" style={{ width: 136 }}>
+                    <AppInput label={t("date")} value={inventoryDate} onChangeText={setInventoryDate} placeholder={formatDate(new Date())} />
+                  </View>
+                  <View className="gap-2">
+                    <Text className="text-sm font-medium text-ink">{t("shift")}</Text>
+                    <View className="flex-row gap-2">
+                      <Pressable onPress={() => setShift("first")} className={clsx("min-h-12 justify-center rounded-md border px-3", shift === "first" ? "border-orange bg-primary" : "border-primary bg-white")}>
+                        <Text numberOfLines={1} className="text-center text-sm font-semibold text-secondary_dark">{t("firstShift")}</Text>
                       </Pressable>
-                      <Pressable onPress={() => removeFinancialEntry(item.id)} className="h-11 w-11 items-center justify-center rounded-md bg-red-600">
-                        <Text className="font-semibold text-white">X</Text>
+                      <Pressable onPress={() => setShift("second")} className={clsx("min-h-12 justify-center rounded-md border px-3", shift === "second" ? "border-orange bg-primary" : "border-primary bg-white")}>
+                        <Text numberOfLines={1} className="text-center text-sm font-semibold text-secondary_dark">{t("secondShift")}</Text>
                       </Pressable>
                     </View>
-                    {item.requiresExplanation ? <AppInput label={`${item.name} ${t("explanation")}`} value={item.explanation} onChangeText={(value) => updateFinancialExplanation(item.id, value)} /> : null}
                   </View>
-                );
-              })}
-            </View>
-            <View className="h-px bg-primary" />
-            <View className="gap-2">
-              <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(financialTotals.revenues)}</Text>
-              <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(financialTotals.expenses)}</Text>
+                </View>
+              </View>
+
+              <View className="gap-3 border-t border-primary pt-4">
+                <View className="flex-row items-center gap-2">
+                  <ClipboardList color={colors.secondaryDark} size={22} />
+                  <Text className="text-lg font-semibold text-secondary_dark">{t("inventorySummary")}</Text>
+                </View>
+                <View className="gap-3 rounded-md border border-primary bg-background p-4">
+                  <View className="gap-2 border-b border-primary pb-3">
+                    <Text className="text-base font-semibold text-secondary_dark">{t("totalProductEarnings")}: {formatMoney(summaryTotals.totalProductEarnings)}</Text>
+                    <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(summaryTotals.totalRevenues)}</Text>
+                    <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(summaryTotals.totalExpenses)}</Text>
+                  </View>
+                  <View className={clsx("rounded-md border px-4 py-3", summaryTotals.totalEarn >= 0 ? "border-green-700 bg-green-50" : "border-red-700 bg-red-50")}>
+                    <Text className="text-sm font-semibold uppercase text-secondary_dark">{t("totalEarn")}</Text>
+                    <Text className={clsx("mt-1 text-2xl font-bold", summaryTotals.totalEarn >= 0 ? "text-green-700" : "text-red-700")}>{formatMoney(summaryTotals.totalEarn)}</Text>
+                  </View>
+                </View>
+                <AppButton label={t("finishInventoryManagement")} loading={isSaving} disabled={isSaving} onPress={openFinishConfirm} className="bg-secondary_dark" />
+              </View>
             </View>
           </AppCard>
         ) : null}
-
-        <AppCard className="border-primary">
-          <View className="gap-3">
-            <AppInput label={t("inventoryDate")} value={inventoryDate} onChangeText={setInventoryDate} placeholder={formatDate(new Date())} />
-            <View className="gap-2">
-              <Text className="text-sm font-medium text-ink">{t("shift")}</Text>
-              <View className="flex-row flex-wrap gap-2">
-                <SortChip isSelected={shift === "first"} label={t("firstShift")} onPress={() => setShift("first")} />
-                <SortChip isSelected={shift === "second"} label={t("secondShift")} onPress={() => setShift("second")} />
-              </View>
-            </View>
-          </View>
-        </AppCard>
-
-        <AppCard className="border-secondary_dark bg-white">
-          <Text className="text-lg font-semibold text-secondary_dark">{t("inventorySummary")}</Text>
-          <View className="gap-3 rounded-md border border-primary bg-background p-4">
-            <View className="gap-2 border-b border-primary pb-3">
-              <Text className="text-base font-semibold text-secondary_dark">{t("totalProductEarnings")}: {formatMoney(summaryTotals.totalProductEarnings)}</Text>
-              <Text className="text-base font-semibold text-green-700">{t("totalRevenues")}: {formatMoney(summaryTotals.totalRevenues)}</Text>
-              <Text className="text-base font-semibold text-red-700">{t("totalExpenses")}: {formatMoney(summaryTotals.totalExpenses)}</Text>
-            </View>
-            <View className={clsx("rounded-md border px-4 py-3", summaryTotals.totalEarn >= 0 ? "border-green-700 bg-green-50" : "border-red-700 bg-red-50")}>
-              <Text className="text-sm font-semibold uppercase text-secondary_dark">{t("totalEarn")}</Text>
-              <Text className={clsx("mt-1 text-2xl font-bold", summaryTotals.totalEarn >= 0 ? "text-green-700" : "text-red-700")}>{formatMoney(summaryTotals.totalEarn)}</Text>
-            </View>
-          </View>
-          <AppButton label={t("finishInventoryManagement")} loading={isSaving} disabled={isSaving} onPress={openFinishConfirm} className="bg-secondary_dark" />
-        </AppCard>
       </View>
-      <AppModal visible={Boolean(productCellTarget)} onClose={closeProductCellModal}>
-        <View className="gap-5">
-          <View>
-            <Text className="text-xl font-semibold text-secondary_dark">{t("editInventoryValue")}</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted">{t("inventoryValueModalHint")}</Text>
-          </View>
-          <View className="flex-row items-end gap-2">
-            <View className="flex-1">
-              <AppInput value={productCellDraft} onChangeText={(value) => setProductCellDraft(sanitizeInventoryExpression(value))} keyboardType="decimal-pad" placeholder="10+10" />
-            </View>
-            <Pressable accessibilityLabel={t("insertPlus")} onPress={appendProductCellPlus} className="h-12 w-12 items-center justify-center rounded-lg bg-secondary_dark">
-              <Plus color="#ffffff" size={22} />
-            </Pressable>
-            <Pressable accessibilityLabel={t("insertMinus")} onPress={appendProductCellMinus} className="h-12 w-12 items-center justify-center rounded-lg bg-secondary_dark">
-              <Minus color="#ffffff" size={22} />
-            </Pressable>
-          </View>
-          <View className="gap-3">
-            <AppButton label={t("saveChanges")} onPress={handleProductCellSave} className="bg-secondary_dark" />
-            <AppButton label={t("cancel")} variant="secondary" onPress={closeProductCellModal} />
-          </View>
-        </View>
-      </AppModal>
       <AppModal visible={Boolean(calculatorTarget)} onClose={closeCalculator}>
         <View className="gap-5">
           <View>
@@ -840,15 +674,3 @@ export function DashboardTab() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  lowStockImageOverlay: {
-    bottom: 0,
-    elevation: 2,
-    left: 0,
-    position: "absolute",
-    right: 0,
-    top: 0,
-    zIndex: 2,
-  },
-});

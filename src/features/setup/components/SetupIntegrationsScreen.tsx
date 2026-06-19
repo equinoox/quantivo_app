@@ -5,6 +5,7 @@ import { StyleSheet, Text, View, ViewStyle } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
+import { SetupFooterActions } from "@/features/setup/components/SetupFooterActions";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { colors } from "@/shared/constants/colors";
 import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
@@ -91,12 +92,7 @@ export function SetupIntegrationsScreen() {
       stepNumber={5}
       title={t("integrationsTitle")}
       subtitle={t("integrationsSubtitle")}
-      footer={
-        <>
-          <AppButton label={t("finishSetup")} onPress={() => router.push("/(setup)/finalizing")} className="bg-secondary_dark" />
-          <AppButton label={t("back")} variant="secondary" onPress={() => router.back()} />
-        </>
-      }
+      footer={<SetupFooterActions backLabel={t("back")} continueLabel={t("finishSetup")} onBack={() => router.back()} onContinue={() => router.push("/(setup)/finalizing")} />}
     >
       <View className="flex-row flex-wrap gap-3">
         {cards.map((card) => <IntegrationCard key={card.title} activateLabel={t("activate")} icon={card.icon} style={cardStyle} title={card.title} tone={card.tone} />)}

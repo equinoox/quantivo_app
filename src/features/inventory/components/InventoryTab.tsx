@@ -459,6 +459,7 @@ export function InventoryTab() {
 
               <InventoryFinancialEntries
                 entries={visibleList.financialEntries}
+                formatMoney={formatMoney}
                 isEditing={isEditing}
                 onOpenExplanation={openExplanationModal}
                 onOpenNumber={openFinancialNumberModal}

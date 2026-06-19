@@ -8,6 +8,7 @@ export const routes = {
   attributes: "/protected/attributes",
   categories: "/protected/categories",
   devDatabase: "/protected/dev-database",
+  newInventoryProducts: "/protected/new-inventory-products",
   revenuesExpenses: "/protected/revenues-expenses",
   units: "/protected/units",
   workersManagement: "/protected/workers-management",

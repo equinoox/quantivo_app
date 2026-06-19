@@ -377,60 +377,58 @@ export function ProductsTab() {
             </View>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: Math.min(500, responsive.window.height - 240) }}>
-            <View className="gap-3">
-              <AppInput label={t("name")} value={form.name} onChangeText={(value) => updateForm("name", value)} autoCapitalize="words" />
-              <AppInput label={t("price")} value={form.price} onChangeText={(value) => updateNumericForm("price", value)} keyboardType="decimal-pad" placeholder={formatMoney(0)} />
-              <View className={clsx(responsive.isSmallPhone ? "gap-3" : "flex-row gap-3")}>
-                <NumberStepper disabled={form.isCounterProduct} label={t("minimumQuantityAlert")} value={form.minimumQuantityAlert} onChangeText={(value) => updateNumericForm("minimumQuantityAlert", value)} keyboardType="decimal-pad" />
-                <NumberStepper label={t("position")} value={form.position} onChangeText={(value) => updateIntegerForm("position", value)} keyboardType="number-pad" />
+          <View className="gap-3">
+            <AppInput label={t("name")} value={form.name} onChangeText={(value) => updateForm("name", value)} autoCapitalize="words" />
+            <AppInput label={t("price")} value={form.price} onChangeText={(value) => updateNumericForm("price", value)} keyboardType="decimal-pad" placeholder={formatMoney(0)} />
+            <View className={clsx(responsive.isSmallPhone ? "gap-3" : "flex-row gap-3")}>
+              <NumberStepper disabled={form.isCounterProduct} label={t("minimumQuantityAlert")} value={form.minimumQuantityAlert} onChangeText={(value) => updateNumericForm("minimumQuantityAlert", value)} keyboardType="decimal-pad" />
+              <NumberStepper label={t("position")} value={form.position} onChangeText={(value) => updateIntegerForm("position", value)} keyboardType="number-pad" />
+            </View>
+            <Pressable onPress={updateCounterProduct} className={clsx("min-h-12 flex-row items-center gap-3 rounded-md border px-3", form.isCounterProduct ? "border-orange bg-primary" : "border-primary bg-white")}>
+              <View className={clsx("h-6 w-6 items-center justify-center rounded border", form.isCounterProduct ? "border-orange bg-orange" : "border-slate-300 bg-white")}>
+                {form.isCounterProduct ? <Check color="#ffffff" size={15} /> : null}
               </View>
-              <Pressable onPress={updateCounterProduct} className={clsx("min-h-12 flex-row items-center gap-3 rounded-md border px-3", form.isCounterProduct ? "border-orange bg-primary" : "border-primary bg-white")}>
-                <View className={clsx("h-6 w-6 items-center justify-center rounded border", form.isCounterProduct ? "border-orange bg-orange" : "border-slate-300 bg-white")}>
-                  {form.isCounterProduct ? <Check color="#ffffff" size={15} /> : null}
-                </View>
-                <View className="flex-1">
-                  <Text className="font-semibold text-secondary_dark">{t("counterProduct")}</Text>
-                  <Text className="mt-1 text-xs leading-4 text-muted">{t("counterProductHint")}</Text>
-                </View>
-              </Pressable>
-              <AppInput label={t("description")} value={form.description} onChangeText={(value) => updateForm("description", value)} multiline />
-              <View className="gap-2">
-                <Text className="text-sm font-medium text-ink">{t("image")}</Text>
-                <View className="flex-row flex-wrap items-center gap-3">
-                  <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-primary">
-                    {form.imageUrl ? <Image source={{ uri: form.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={28} />}
-                  </View>
-                  <View className="flex-1 gap-2">
-                    <ToolbarButton icon={<ImagePlus color={colors.secondaryDark} size={15} />} label={t("selectImage")} onPress={handlePickImage} />
-                    {form.imageUrl ? <ToolbarButton icon={<Trash2 color="#ffffff" size={15} />} label={t("removeImage")} tone="danger" onPress={() => updateForm("imageUrl", "")} /> : null}
-                  </View>
-                </View>
+              <View className="flex-1">
+                <Text className="font-semibold text-secondary_dark">{t("counterProduct")}</Text>
+                <Text className="mt-1 text-xs leading-4 text-muted">{t("counterProductHint")}</Text>
               </View>
-
-              <View className="gap-2">
-                <Text className="text-sm font-medium text-ink">{t("category")}</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {categories.map((category) => <OptionChip key={category.id} isSelected={form.categoryId === category.id} label={category.name} onPress={() => updateForm("categoryId", category.id)} />)}
+            </Pressable>
+            <AppInput label={t("description")} value={form.description} onChangeText={(value) => updateForm("description", value)} multiline />
+            <View className="gap-2">
+              <Text className="text-sm font-medium text-ink">{t("image")}</Text>
+              <View className="flex-row flex-wrap items-center gap-3">
+                <View className="h-20 w-20 items-center justify-center overflow-hidden rounded-md bg-primary">
+                  {form.imageUrl ? <Image source={{ uri: form.imageUrl }} className="h-full w-full" resizeMode="cover" /> : <ImageIcon color={colors.secondaryDark} size={28} />}
                 </View>
-              </View>
-
-              <View className="gap-2">
-                <Text className="text-sm font-medium text-ink">{t("unit")}</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {units.map((unit) => <OptionChip key={unit.id} isSelected={form.unitId === unit.id} label={unit.name} onPress={() => updateForm("unitId", unit.id)} />)}
-                </View>
-              </View>
-
-              <View className="gap-2">
-                <Text className="text-sm font-medium text-ink">{t("attributes")}</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {attributes.length === 0 ? <Text className="text-sm text-muted">{t("attributesOptionalEmpty")}</Text> : null}
-                  {attributes.map((attribute) => <OptionChip key={attribute.id} isSelected={form.attributeIds.includes(attribute.id)} label={attribute.name} onPress={() => toggleAttribute(attribute.id)} />)}
+                <View className="flex-1 gap-2">
+                  <ToolbarButton icon={<ImagePlus color={colors.secondaryDark} size={15} />} label={t("selectImage")} onPress={handlePickImage} />
+                  {form.imageUrl ? <ToolbarButton icon={<Trash2 color="#ffffff" size={15} />} label={t("removeImage")} tone="danger" onPress={() => updateForm("imageUrl", "")} /> : null}
                 </View>
               </View>
             </View>
-          </ScrollView>
+
+            <View className="gap-2">
+              <Text className="text-sm font-medium text-ink">{t("category")}</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {categories.map((category) => <OptionChip key={category.id} isSelected={form.categoryId === category.id} label={category.name} onPress={() => updateForm("categoryId", category.id)} />)}
+              </View>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-sm font-medium text-ink">{t("unit")}</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {units.map((unit) => <OptionChip key={unit.id} isSelected={form.unitId === unit.id} label={unit.name} onPress={() => updateForm("unitId", unit.id)} />)}
+              </View>
+            </View>
+
+            <View className="gap-2">
+              <Text className="text-sm font-medium text-ink">{t("attributes")}</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {attributes.length === 0 ? <Text className="text-sm text-muted">{t("attributesOptionalEmpty")}</Text> : null}
+                {attributes.map((attribute) => <OptionChip key={attribute.id} isSelected={form.attributeIds.includes(attribute.id)} label={attribute.name} onPress={() => toggleAttribute(attribute.id)} />)}
+              </View>
+            </View>
+          </View>
 
           <View className="gap-2 pt-1">
             <AppButton label={editingProduct ? t("saveChanges") : t("createProduct")} loading={isSaving} onPress={handleSave} className="bg-secondary_dark" />

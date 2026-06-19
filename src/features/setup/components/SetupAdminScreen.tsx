@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { SetupScreen } from "@/features/setup/components/SetupScreen";
+import { SetupFooterActions } from "@/features/setup/components/SetupFooterActions";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
 import { setupAdminSchema } from "@/features/setup/validation/setup.schemas";
 import { AppButton } from "@/shared/components/ui/AppButton";
@@ -63,12 +64,7 @@ export function SetupAdminScreen() {
       stepNumber={3}
       title={t("adminsTitle")}
       subtitle={t("adminsSubtitle")}
-      footer={
-        <>
-          <AppButton label={t("continue")} onPress={handleNext} className="bg-secondary_dark" />
-          <AppButton label={t("back")} variant="secondary" onPress={() => router.back()} />
-        </>
-      }
+      footer={<SetupFooterActions backLabel={t("back")} continueLabel={t("continue")} onBack={() => router.back()} onContinue={handleNext} />}
     >
       <View className="gap-3 rounded-md border border-primary bg-white p-4">
         <AppInput label={t("fullName")} value={form.name} onChangeText={(value) => updateField("name", value)} autoCapitalize="words" />
