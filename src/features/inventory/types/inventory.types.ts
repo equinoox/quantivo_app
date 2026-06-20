@@ -34,6 +34,7 @@ export type FinishInventoryListFinancialEntryInput = {
 export type InventoryListSummary = {
   id: string;
   date: string;
+  dateKey: string;
   shift: InventoryListShift;
   createdByUserId: string;
   createdByUserName: string;
@@ -66,6 +67,7 @@ export type UpdateInventoryListFinancialEntryInput = InventoryListFinancialEntry
 
 export type UpdateInventoryListInput = {
   date: string;
+  dateKey: string;
   id: string;
   shift: InventoryListShift;
   products: UpdateInventoryListProductInput[];
@@ -74,6 +76,7 @@ export type UpdateInventoryListInput = {
 
 export type FinishInventoryListInput = {
   date: string;
+  dateKey: string;
   shift: InventoryListShift;
   createdByUserId: string;
   products: FinishInventoryListProductInput[];
@@ -88,6 +91,7 @@ export type FinishInventoryListInput = {
 export type FinishedInventoryList = {
   id: string;
   date: string;
+  dateKey: string;
   shift: InventoryListShift;
   createdByUserId: string;
   totalProductEarnings: number;

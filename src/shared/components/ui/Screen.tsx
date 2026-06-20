@@ -9,9 +9,9 @@ import { AngledHeader } from "@/shared/components/ui/AngledHeader";
 import { RevealOnScrollContext } from "@/shared/components/ui/RevealOnScroll";
 import { useResponsiveLayout } from "@/shared/hooks/useResponsiveLayout";
 
-type ScreenProps = PropsWithChildren<{ backgroundFallbackSource?: ImageSourcePropType; backgroundImageUri?: string | null; backgroundOverlayClassName?: string; icon?: ReactNode; refreshControl?: ReactElement<RefreshControlProps>; showBackButton?: boolean; subtitle?: string; title?: string; scrollable?: boolean; tabPage?: boolean }>;
+type ScreenProps = PropsWithChildren<{ backgroundFallbackSource?: ImageSourcePropType; backgroundImageUri?: string | null; backgroundOverlayClassName?: string; headerActions?: ReactNode; icon?: ReactNode; refreshControl?: ReactElement<RefreshControlProps>; showBackButton?: boolean; subtitle?: string; title?: string; scrollable?: boolean; tabPage?: boolean }>;
 
-export function Screen({ backgroundFallbackSource, backgroundImageUri, backgroundOverlayClassName, icon, refreshControl, showBackButton = false, subtitle, title, scrollable = true, tabPage = false, children }: ScreenProps) {
+export function Screen({ backgroundFallbackSource, backgroundImageUri, backgroundOverlayClassName, headerActions, icon, refreshControl, showBackButton = false, subtitle, title, scrollable = true, tabPage = false, children }: ScreenProps) {
   const session = useAuthStore((state) => state.session);
   const responsive = useResponsiveLayout();
   const [revealViewportHeight, setRevealViewportHeight] = useState(0);
@@ -35,7 +35,7 @@ export function Screen({ backgroundFallbackSource, backgroundImageUri, backgroun
   return (
     <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-secondary_dark">
       <View className="flex-1 bg-background">
-        {displayTitle ? <AngledHeader icon={icon} title={displayTitle} subtitle={subtitle} showBackButton={showBackButton} showNotifications={tabPage} onBack={() => router.back()} compact /> : null}
+        {displayTitle ? <AngledHeader icon={icon} title={displayTitle} subtitle={subtitle} showBackButton={showBackButton} rightActions={headerActions} onBack={() => router.back()} compact /> : null}
         <ImageBackground source={backgroundSource} resizeMode="cover" className="flex-1">
           {backgroundOverlayClassName ? <View pointerEvents="none" className={clsx("absolute inset-0", backgroundOverlayClassName)} /> : null}
           <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : "height"}>

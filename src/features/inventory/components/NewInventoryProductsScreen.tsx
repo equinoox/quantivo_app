@@ -8,8 +8,8 @@ import { NewInventoryProductTable } from "@/features/inventory/components/NewInv
 import { useNewInventoryDraftStore } from "@/features/inventory/hooks/useNewInventoryDraftStore";
 import { EditableProductField, getInitialProductInventoryValues, parseInventoryFieldValue, sanitizeInventoryExpression } from "@/features/inventory/lib/inventory-calculations";
 import { createInventoryFieldChangeNotification } from "@/features/notifications/services/notifications.service";
-import { listProducts } from "@/features/products/services/products.service";
-import { Product } from "@/features/products/types/product.types";
+import { listProducts } from "@/features/inventory/products/services/products.service";
+import { Product } from "@/features/inventory/products/types/product.types";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { AppCard } from "@/shared/components/ui/AppCard";
 import { AppInput } from "@/shared/components/ui/AppInput";

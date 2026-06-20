@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Check, ChevronDown, ChevronRight, CircleUserRound, Database, FolderTree, ImageIcon, LogOut, Ruler, Settings, Tags, Trash2, UsersRound, Wrench } from "lucide-react-native";
+import { Check, ChevronDown, ChevronRight, CircleUserRound, Database, ImageIcon, LogOut, Settings, Trash2, UsersRound, Wrench } from "lucide-react-native";
 import { ReactNode, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import clsx from "clsx";
@@ -146,7 +146,7 @@ export function SettingsTab() {
   ];
 
   return (
-    <Screen tabPage icon={<Settings color={colors.secondaryDark} size={36} />} title={t("settings")} subtitle={t("settingsFoundation")}>
+    <Screen icon={<Settings color={colors.secondaryDark} size={36} />} title={t("settings")} subtitle={t("settingsFoundation")} showBackButton>
       <View className="gap-2 rounded-md border border-primary bg-white p-2">
         <View className="min-h-16 flex-row items-center gap-3 rounded-md bg-primary px-3 py-3">
           <View className="h-11 w-11 items-center justify-center rounded-md bg-white">
@@ -157,10 +157,6 @@ export function SettingsTab() {
             <Text className="text-sm font-medium text-secondary">{session?.user.role ? roleLabels[session.user.role] : ""}</Text>
           </View>
         </View>
-
-        <SettingsRow icon={<Tags color={colors.secondaryDark} size={20} />} label={t("attributes")} onPress={() => router.push(routes.attributes)} />
-        <SettingsRow icon={<Ruler color={colors.secondaryDark} size={20} />} label={t("units")} onPress={() => router.push(routes.units)} />
-        <SettingsRow icon={<FolderTree color={colors.secondaryDark} size={20} />} label={t("categories")} onPress={() => router.push(routes.categories)} />
 
         {session?.user.role === "admin" ? (
           <>

@@ -1,9 +1,11 @@
-import { desc } from "drizzle-orm";
+import { desc, inArray } from "drizzle-orm";
 
 import { CreateInventoryFieldChangeNotificationInput, CreateShiftFinishedNotificationInput, InventoryNotification } from "@/features/notifications/types/notification.types";
 import { db } from "@/shared/lib/db/client";
 import { inventoryNotifications } from "@/shared/lib/db/schema";
 import { createLocalId } from "@/shared/lib/id/createLocalId";
+
+const notificationTypes: InventoryNotification["type"][] = ["field_change", "shift_finished"];
 
 export async function createInventoryFieldChangeNotification(input: CreateInventoryFieldChangeNotificationInput): Promise<void> {
   await db.insert(inventoryNotifications).values({
@@ -35,5 +37,6 @@ export async function createShiftFinishedNotification(input: CreateShiftFinished
 }
 
 export async function listInventoryNotifications({ limit, offset }: { limit: number; offset: number }): Promise<InventoryNotification[]> {
-  return db.select().from(inventoryNotifications).orderBy(desc(inventoryNotifications.createdAt)).limit(limit).offset(offset);
+  const rows = await db.select().from(inventoryNotifications).where(inArray(inventoryNotifications.type, notificationTypes)).orderBy(desc(inventoryNotifications.createdAt)).limit(limit).offset(offset);
+  return rows.map((row) => ({ ...row, type: row.type as InventoryNotification["type"] }));
 }

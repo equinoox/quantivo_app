@@ -1,8 +1,14 @@
 import { sqlite } from "@/shared/lib/db/client";
 
-export const LATEST_SCHEMA_VERSION = 3;
+export const LATEST_SCHEMA_VERSION = 4;
 
 const SCHEMA_VERSION_KEY = "schema_version";
+const DATE_FORMAT_KEY = "date_format";
+
+type Migration = {
+  version: number;
+  run: () => Promise<void>;
+};
 
 async function ensureAppSettingsTable(): Promise<void> {
   await sqlite.execAsync(`
@@ -189,6 +195,7 @@ async function runBaselineSchemaMigration(): Promise<void> {
     CREATE TABLE IF NOT EXISTS inventory_lists (
       id TEXT PRIMARY KEY NOT NULL,
       date TEXT NOT NULL,
+      date_key TEXT NOT NULL,
       shift TEXT NOT NULL,
       created_by_user_id TEXT NOT NULL REFERENCES users(id),
       total_product_earnings REAL NOT NULL DEFAULT 0,
@@ -202,6 +209,9 @@ async function runBaselineSchemaMigration(): Promise<void> {
 
     CREATE UNIQUE INDEX IF NOT EXISTS inventory_lists_date_shift_unique
       ON inventory_lists(date, shift);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS inventory_lists_date_key_shift_unique
+      ON inventory_lists(date_key, shift);
 
     CREATE TABLE IF NOT EXISTS inventory_list_items (
       id TEXT PRIMARY KEY NOT NULL,
@@ -286,6 +296,8 @@ async function runBaselineSchemaMigration(): Promise<void> {
     await sqlite.execAsync("ALTER TABLE inventory_list_items ADD COLUMN is_counter_product INTEGER NOT NULL DEFAULT 0;");
   }
 
+  await ensureInventoryListDateKeyColumn();
+
   const categoryColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(categories)");
   if (!categoryColumns.some((column) => column.name === "deleted_at")) {
     await sqlite.execAsync("ALTER TABLE categories ADD COLUMN deleted_at TEXT;");
@@ -337,15 +349,67 @@ async function runCustomFinancialEntryBehaviorMigration(): Promise<void> {
   }
 }
 
+function normalizeDateKey(value: string, dateFormat: string, fallbackDateKey: string): string {
+  const trimmedValue = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) return trimmedValue;
+
+  const separator = dateFormat === "dd.MM.yyyy" ? "." : "/";
+  const escapedSeparator = separator === "." ? "\\." : "/";
+  const match = new RegExp(`^(\\d{2})${escapedSeparator}(\\d{2})${escapedSeparator}(\\d{4})$`).exec(trimmedValue);
+  if (!match) return fallbackDateKey;
+
+  const first = Number(match[1]);
+  const second = Number(match[2]);
+  const year = Number(match[3]);
+  const month = dateFormat === "MM/dd/yyyy" ? first : second;
+  const day = dateFormat === "MM/dd/yyyy" ? second : first;
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day) || month < 1 || month > 12 || day < 1 || day > 31) return fallbackDateKey;
+
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+async function ensureInventoryListDateKeyColumn(): Promise<void> {
+  const inventoryListColumns = await sqlite.getAllAsync<{ name: string }>("PRAGMA table_info(inventory_lists)");
+  if (!inventoryListColumns.some((column) => column.name === "date_key")) {
+    await sqlite.execAsync("ALTER TABLE inventory_lists ADD COLUMN date_key TEXT NOT NULL DEFAULT '';");
+  }
+}
+
+async function runInventoryListDateKeyMigration(): Promise<void> {
+  await ensureInventoryListDateKeyColumn();
+  const dateFormatSetting = await sqlite.getFirstAsync<{ value: string }>(`SELECT value FROM app_settings WHERE key = '${DATE_FORMAT_KEY}' LIMIT 1;`);
+  const dateFormat = dateFormatSetting?.value || "dd/MM/yyyy";
+  const rows = await sqlite.getAllAsync<{ created_at: string; date: string; date_key: string; id: string }>("SELECT id, date, date_key, created_at FROM inventory_lists;");
+
+  for (const row of rows) {
+    if (row.date_key) continue;
+    const fallbackDateKey = row.created_at.slice(0, 10);
+    const dateKey = normalizeDateKey(row.date, dateFormat, fallbackDateKey);
+    await sqlite.execAsync(`UPDATE inventory_lists SET date_key = '${dateKey.replace(/'/g, "''")}' WHERE id = '${row.id.replace(/'/g, "''")}';`);
+  }
+
+  await sqlite.execAsync(`
+    CREATE UNIQUE INDEX IF NOT EXISTS inventory_lists_date_key_shift_unique
+      ON inventory_lists(date_key, shift);
+  `);
+}
+
+const versionedMigrations: Migration[] = [
+  { version: 1, run: runBaselineSchemaMigration },
+  { version: 2, run: runCustomFinancialEntriesMigration },
+  { version: 3, run: runCustomFinancialEntryBehaviorMigration },
+  { version: 4, run: runInventoryListDateKeyMigration },
+];
+
 export async function runVersionedMigrations(): Promise<void> {
   await sqlite.execAsync("PRAGMA foreign_keys = ON;");
 
   const currentVersion = await getCurrentSchemaVersion();
-  if (currentVersion < LATEST_SCHEMA_VERSION) {
-    await runBaselineSchemaMigration();
-    if (currentVersion < 2) await runCustomFinancialEntriesMigration();
-    if (currentVersion < 3) await runCustomFinancialEntryBehaviorMigration();
-    await setCurrentSchemaVersion(LATEST_SCHEMA_VERSION);
+  for (const migration of versionedMigrations) {
+    if (currentVersion < migration.version) {
+      await migration.run();
+      await setCurrentSchemaVersion(migration.version);
+    }
   }
 }
 

@@ -127,6 +127,7 @@ export const inventoryLists = sqliteTable(
   {
     id: text("id").primaryKey(),
     date: text("date").notNull(),
+    dateKey: text("date_key").notNull(),
     shift: text("shift", { enum: ["first", "second"] }).notNull(),
     createdByUserId: text("created_by_user_id").notNull().references(() => users.id),
     totalProductEarnings: real("total_product_earnings").notNull().default(0),
@@ -137,7 +138,10 @@ export const inventoryLists = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => [uniqueIndex("inventory_lists_date_shift_unique").on(table.date, table.shift)],
+  (table) => [
+    uniqueIndex("inventory_lists_date_shift_unique").on(table.date, table.shift),
+    uniqueIndex("inventory_lists_date_key_shift_unique").on(table.dateKey, table.shift),
+  ],
 );
 
 export const inventoryListItems = sqliteTable("inventory_list_items", {
@@ -175,7 +179,7 @@ export const inventoryListFinancialEntries = sqliteTable("inventory_list_financi
 
 export const inventoryNotifications = sqliteTable("inventory_notifications", {
   id: text("id").primaryKey(),
-  type: text("type", { enum: ["field_change", "shift_finished"] }).notNull(),
+  type: text("type", { enum: ["field_change", "shift_finished", "inventory_list_created", "inventory_list_updated", "inventory_list_exported", "product_created", "product_updated", "product_deleted"] }).notNull(),
   actorUserId: text("actor_user_id").notNull().references(() => users.id),
   actorNameSnapshot: text("actor_name_snapshot").notNull(),
   productId: text("product_id"),

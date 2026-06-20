@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { EditableProductField, InventoryGrouping, ProductInventoryState, getInitialProductInventoryValues } from "@/features/inventory/lib/inventory-calculations";
-import { Product } from "@/features/products/types/product.types";
+import { Product } from "@/features/inventory/products/types/product.types";
 
 type NewInventoryDraftState = {
   grouping: InventoryGrouping;

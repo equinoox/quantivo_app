@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { AlertTriangle, ImageIcon } from "lucide-react-native";
 
 import { calculateSoldValue, EditableProductField, parseInventoryFieldValue } from "@/features/inventory/lib/inventory-calculations";
-import { Product } from "@/features/products/types/product.types";
+import { Product } from "@/features/inventory/products/types/product.types";
 import { RevealOnScroll } from "@/shared/components/ui/RevealOnScroll";
 import { colors } from "@/shared/constants/colors";
 

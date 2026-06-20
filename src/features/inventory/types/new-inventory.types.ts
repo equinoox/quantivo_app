@@ -1,4 +1,4 @@
-import { FinancialItem } from "@/features/revenues-expenses/types/financial-item.types";
+import { FinancialItem } from "@/features/finance/types/financial-item.types";
 
 export type InventoryFinancialEntry = {
   amount: string;

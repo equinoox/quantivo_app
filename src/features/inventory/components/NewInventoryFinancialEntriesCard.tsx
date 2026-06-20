@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { CircleDollarSign } from "lucide-react-native";
 
 import { InventoryFinancialEntry } from "@/features/inventory/types/new-inventory.types";
-import { FinancialItem } from "@/features/revenues-expenses/types/financial-item.types";
+import { FinancialItem } from "@/features/finance/types/financial-item.types";
 import { AppButton } from "@/shared/components/ui/AppButton";
 import { AppCard } from "@/shared/components/ui/AppCard";
 import { AppInput } from "@/shared/components/ui/AppInput";

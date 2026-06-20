@@ -11,13 +11,13 @@ function getStoredExpression(expression: string, value: number): string {
   return expression.trim() || value.toString();
 }
 
-async function inventoryListExists(date: string, shift: FinishInventoryListInput["shift"]): Promise<boolean> {
-  const [existingList] = await db.select({ id: inventoryLists.id }).from(inventoryLists).where(and(eq(inventoryLists.date, date), eq(inventoryLists.shift, shift))).limit(1);
+async function inventoryListExists(dateKey: string, shift: FinishInventoryListInput["shift"]): Promise<boolean> {
+  const [existingList] = await db.select({ id: inventoryLists.id }).from(inventoryLists).where(and(eq(inventoryLists.dateKey, dateKey), eq(inventoryLists.shift, shift))).limit(1);
   return Boolean(existingList);
 }
 
-async function inventoryListExistsForOtherList(id: string, date: string, shift: FinishInventoryListInput["shift"]): Promise<boolean> {
-  const [existingList] = await db.select({ id: inventoryLists.id }).from(inventoryLists).where(and(eq(inventoryLists.date, date), eq(inventoryLists.shift, shift))).limit(1);
+async function inventoryListExistsForOtherList(id: string, dateKey: string, shift: FinishInventoryListInput["shift"]): Promise<boolean> {
+  const [existingList] = await db.select({ id: inventoryLists.id }).from(inventoryLists).where(and(eq(inventoryLists.dateKey, dateKey), eq(inventoryLists.shift, shift))).limit(1);
   return Boolean(existingList && existingList.id !== id);
 }
 
@@ -27,7 +27,7 @@ async function isLatestInventoryList(id: string): Promise<boolean> {
 }
 
 export async function finishInventoryList(input: FinishInventoryListInput): Promise<FinishedInventoryList> {
-  if (await inventoryListExists(input.date, input.shift)) {
+  if (await inventoryListExists(input.dateKey, input.shift)) {
     throw new Error(INVENTORY_LIST_DUPLICATE_ERROR);
   }
 
@@ -41,6 +41,7 @@ export async function finishInventoryList(input: FinishInventoryListInput): Prom
         createdAt: now,
         createdByUserId: input.createdByUserId,
         date: input.date,
+        dateKey: input.dateKey,
         id: inventoryListId,
         shift: input.shift,
         totalEarn: input.totalEarn,
@@ -123,6 +124,7 @@ export async function listInventoryLists(): Promise<InventoryListSummary[]> {
       createdByUserId: inventoryLists.createdByUserId,
       createdByUserName: users.name,
       date: inventoryLists.date,
+      dateKey: inventoryLists.dateKey,
       id: inventoryLists.id,
       shift: inventoryLists.shift,
       totalEarn: inventoryLists.totalEarn,
@@ -146,6 +148,7 @@ export async function getInventoryList(id: string): Promise<InventoryListDetail 
       createdByUserId: inventoryLists.createdByUserId,
       createdByUserName: users.name,
       date: inventoryLists.date,
+      dateKey: inventoryLists.dateKey,
       id: inventoryLists.id,
       shift: inventoryLists.shift,
       totalEarn: inventoryLists.totalEarn,
@@ -216,7 +219,7 @@ export async function getInventoryList(id: string): Promise<InventoryListDetail 
 }
 
 export async function updateInventoryList(input: UpdateInventoryListInput): Promise<InventoryListDetail> {
-  if (await inventoryListExistsForOtherList(input.id, input.date, input.shift)) {
+  if (await inventoryListExistsForOtherList(input.id, input.dateKey, input.shift)) {
     throw new Error(INVENTORY_LIST_DUPLICATE_ERROR);
   }
 
@@ -234,6 +237,7 @@ export async function updateInventoryList(input: UpdateInventoryListInput): Prom
       .set({
         bilans,
         date: input.date,
+        dateKey: input.dateKey,
         shift: input.shift,
         totalEarn,
         totalExpenses,

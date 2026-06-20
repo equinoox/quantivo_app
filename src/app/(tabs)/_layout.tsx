@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
-import { CircleDollarSign, ClipboardList, ListPlus, Package, Settings } from "lucide-react-native";
+import { BarChart3, CircleDollarSign, ClipboardList, FileText, LayoutDashboard } from "lucide-react-native";
 
 import { useAuthStore } from "@/features/auth/hooks/useAuthStore";
 import { useSetupStore } from "@/features/setup/hooks/useSetupStore";
@@ -29,11 +29,11 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="dashboard" options={{ title: t("dashboard"), tabBarIcon: ({ color, size }) => <ListPlus color={color} size={size} /> }} />
+      <Tabs.Screen name="dashboard" options={{ title: t("dashboardMain"), tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size} /> }} />
       <Tabs.Screen name="inventory" options={{ title: t("inventory"), tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} /> }} />
-      <Tabs.Screen name="products" options={{ title: t("products"), tabBarIcon: ({ color, size }) => <Package color={color} size={size} /> }} />
-      <Tabs.Screen name="reports" options={{ title: t("finances"), tabBarIcon: ({ color, size }) => <CircleDollarSign color={color} size={size} /> }} />
-      <Tabs.Screen name="settings" options={{ title: t("settings"), tabBarIcon: ({ color, size }) => <Settings color={color} size={size} /> }} />
+      <Tabs.Screen name="finance" options={{ title: t("finances"), tabBarIcon: ({ color, size }) => <CircleDollarSign color={color} size={size} /> }} />
+      <Tabs.Screen name="invoices" options={{ title: t("invoices"), tabBarIcon: ({ color, size }) => <FileText color={color} size={size} /> }} />
+      <Tabs.Screen name="reports" options={{ title: t("reports"), tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} /> }} />
     </Tabs>
   );
 }

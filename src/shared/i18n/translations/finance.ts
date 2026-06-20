@@ -2,7 +2,7 @@ import { FeatureTranslations } from "./types";
 
 export const financeTranslations: FeatureTranslations = {
   en: {
-    finances: "Finances",
+    finances: "Finance",
     financesSubtitle: "Track revenues, expenses, and inventory list results.",
     revenuesExpensesManagement: "Revenues and Expenses",
     revenuesExpensesManagementSubtitle: "Define fixed or variable revenue and expense items.",

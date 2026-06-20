@@ -1,4 +1,4 @@
-import { WorkersManagementScreen } from "@/features/workers/components/WorkersManagementScreen";
+import { WorkersManagementScreen } from "@/features/team/components/WorkersManagementScreen";
 import { ProtectedRoute } from "@/shared/components/navigation/ProtectedRoute";
 
 export default function WorkersManagementRoute() {

@@ -1,4 +1,4 @@
-import { Product } from "@/features/products/types/product.types";
+import { Product } from "@/features/inventory/products/types/product.types";
 
 export type InventoryGrouping = "category" | "unit";
 export type InventoryShift = "first" | "second";
@@ -72,6 +72,19 @@ export function isValidInventoryDate(value: string, dateFormat: string): boolean
   if (year < 1900 || month < 1 || month > 12 || day < 1) return false;
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+export function getInventoryDateKey(value: string, dateFormat: string): string | null {
+  const trimmedValue = value.trim();
+  if (!isValidInventoryDate(trimmedValue, dateFormat)) return null;
+
+  if (dateFormat === "yyyy-MM-dd") return trimmedValue;
+
+  const separator = dateFormat === "dd.MM.yyyy" ? "." : "/";
+  const [first, second, year] = trimmedValue.split(separator).map(Number);
+  const month = dateFormat === "MM/dd/yyyy" ? first : second;
+  const day = dateFormat === "MM/dd/yyyy" ? second : first;
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
 }
 
 export function formatQuantity(value: number): string {
